@@ -134,7 +134,7 @@
 /* ---------- Color palettes ---------- */
 const SKIN   = ["#ffe0c8", "#f8c9a0", "#e5a878", "#c68652", "#9a6038", "#6b4026"];
 const HAIR   = ["#2b1b17", "#5a3825", "#8b4a2b", "#d9a441", "#f3d98b", "#ff6fae", "#5aa9ff", "#9b6bff", "#4ecb8d", "#e8e8ee"];
-const CLOTH  = ["#ff5fa2", "#ff8a3d", "#ffd23f", "#4ecb8d", "#3fb6ff", "#7b61ff", "#b55fe0", "#ffffff", "#444455", "#e63946"];
+const CLOTH  = ["#f2b8c6", "#b3202a", "#f0e6d8", "#c9a27a", "#8fb3a5", "#3f6fd1", "#6b3f7a", "#1f2a44", "#1f1f2b", "#ffffff"];
 const SHOE   = ["#ffffff", "#ff5fa2", "#3fb6ff", "#ffd23f", "#6b4026", "#2b2b3a"];
 const GLASS  = ["#2b2b3a", "#ff5fa2", "#3fb6ff", "#ffd23f", "#7b61ff", "#e63946"];
 
@@ -145,11 +145,14 @@ const CATS = [
       ["long", "Long"], ["bob", "Bob"], ["short", "Short"], ["ponytail", "Ponytail"],
       ["pigtails", "Pigtails"], ["buns", "Buns"], ["curly", "Curly"] ] },
   { id: "top",     label: "👚 Top",     styleKey: "top", colorKey: "topColor", colors: CLOTH, styles: [
-      ["tee", "T-shirt"], ["heart", "Heart tee"], ["hoodie", "Hoodie"], ["tank", "Tank top"] ] },
+      ["tee", "Fitted tee"], ["blouse", "Silk blouse"], ["wrap", "Wrap top"],
+      ["turtle", "Turtleneck"], ["blazer", "Blazer"], ["tank", "Camisole"] ] },
   { id: "bottom",  label: "👖 Bottom",  styleKey: "bottom", colorKey: "bottomColor", colors: CLOTH, styles: [
-      ["skirt", "Skirt"], ["longskirt", "Long skirt"], ["shorts", "Shorts"], ["pants", "Pants"] ] },
+      ["pencil", "Pencil skirt"], ["midi", "Pleated midi"], ["wide", "Wide-leg pants"],
+      ["jeans", "Slim jeans"], ["shorts", "Tailored shorts"] ] },
   { id: "dress",   label: "👗 Dress",   styleKey: "dress", colorKey: "dressColor", colors: CLOTH, styles: [
-      ["none", "No dress"], ["party", "Party dress"], ["sun", "Sundress"], ["gown", "Princess gown"] ],
+      ["none", "No dress"], ["wrap", "Wrap dress"], ["cocktail", "Cocktail dress"],
+      ["gown", "Evening gown"], ["sun", "Sundress"] ],
       hint: "A dress replaces the top and bottom." },
   { id: "shoes",   label: "👟 Shoes",   styleKey: "shoes", colorKey: "shoeColor", colors: SHOE, styles: [
       ["sneakers", "Sneakers"], ["boots", "Boots"], ["sandals", "Sandals"] ] },
@@ -171,12 +174,12 @@ const CATS = [
 const DEFAULTS = {
   skin: SKIN[1],
   hair: "long", hairColor: HAIR[1],
-  top: "tee", topColor: CLOTH[0],
-  bottom: "skirt", bottomColor: CLOTH[5],
-  dress: "none", dressColor: CLOTH[2],
+  top: "blouse", topColor: CLOTH[2],
+  bottom: "pencil", bottomColor: CLOTH[7],
+  dress: "none", dressColor: CLOTH[1],
   shoes: "sneakers", shoeColor: SHOE[0],
   glasses: "none", glassColor: GLASS[0],
-  hat: "none", hatColor: CLOTH[0],
+  hat: "none", hatColor: CLOTH[7],
   extras: [],
   scene: "sky",
 };
@@ -306,50 +309,172 @@ function face(skin, hair) {
     <path d="M145 148 Q150 152 155 148" fill="none" stroke="#e8798d" stroke-width="2" stroke-linecap="round"/>`;
 }
 
+/* ---------- Clothes (cut to follow the body's curves) ---------- */
+// half-width of the torso at height y: shoulders, bust, waist (narrowest), hips
+const TORSO = [[178, 36], [192, 35], [205, 34], [225, 28], [246, 23], [262, 30], [280, 36], [298, 37]];
+function halfW(y) {
+  for (let i = 1; i < TORSO.length; i++) {
+    const [y1, w1] = TORSO[i - 1], [y2, w2] = TORSO[i];
+    if (y <= y2) return w1 + (w2 - w1) * Math.max(0, y - y1) / (y2 - y1);
+  }
+  return TORSO[TORSO.length - 1][1];
+}
+const fp = q => q[0].toFixed(1) + " " + q[1].toFixed(1);
+// points along the left (sign -1) or right (+1) side of the torso, with optional extra room g
+function edge(y0, y1, sign, g = 0) {
+  const out = [], step = y1 >= y0 ? 8 : -8;
+  for (let y = y0; step > 0 ? y < y1 : y > y1; y += step) out.push([150 + sign * (halfW(y) + g), y]);
+  out.push([150 + sign * (halfW(y1) + g), y1]);
+  return out;
+}
+// smooth path through points (quadratic curves through the midpoints)
+function curve(p, first = "M") {
+  if (p.length < 3) return p.map((q, i) => (i ? "L" : first) + fp(q)).join(" ");
+  let d = first + fp(p[0]);
+  for (let i = 1; i < p.length - 1; i++) d += ` Q${fp(p[i])} ${fp([(p[i][0] + p[i + 1][0]) / 2, (p[i][1] + p[i + 1][1]) / 2])}`;
+  return d + ` L${fp(p[p.length - 1])}`;
+}
+const mirror = pts => pts.map(([x, y]) => [300 - x, y]).reverse();
+// closed shape from a left outline (top to bottom); the right side is its mirror image
+const symmetric = left => curve(left, "M") + " " + curve(mirror(left), "L") + "Z";
+const band = (y0, y1, g) => symmetric([...edge(y0, y1, -1, g)]);
+const sleeves = (c, d1, d2, w = 17) =>
+  `<path d="${d1}" fill="none" stroke="rgba(0,0,0,.2)" stroke-width="${w + 2}" stroke-linecap="round"/>
+   <path d="${d2}" fill="none" stroke="rgba(0,0,0,.2)" stroke-width="${w + 2}" stroke-linecap="round"/>
+   <path d="${d1}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>
+   <path d="${d2}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+const LONG = ["M109 190 Q98 238 97 282", "M191 190 Q202 238 203 282"];
+const THREEQ = ["M109 190 Q99 228 98 264", "M191 190 Q201 228 202 264"];
+
 function bottomWear(style, c) {
+  const dk = darker(c, .22);
+  const waist = `<path d="${band(243, 254, 1.5)}" fill="${dk}" ${OUT}/>`;
   switch (style) {
-    case "skirt":     return `<path d="M110 288 L190 288 L210 365 L90 365Z" fill="${c}" ${OUT}/>`;
-    case "longskirt": return `<path d="M110 288 L190 288 L215 415 L85 415Z" fill="${c}" ${OUT}/>`;
-    case "shorts":    return `<path d="M110 288 L190 288 L192 350 L152 350 L150 325 L148 350 L108 350Z" fill="${c}" ${OUT}/>`;
-    case "pants":     return `<path d="M110 288 L190 288 L184 428 L154 428 L150 325 L146 428 L116 428Z" fill="${c}" ${OUT}/>`;
+    case "pencil": {
+      const left = [...edge(246, 298, -1, 2), [114, 336], [118, 374]];
+      return `<path d="${symmetric(left)}" fill="${c}" ${OUT}/>${waist}
+              <path d="M150 374 L150 350" stroke="${dk}" stroke-width="2" opacity=".6"/>`;
+    }
+    case "midi": {
+      const left = [...edge(246, 298, -1, 1), [106, 344], [88, 398]];
+      let pleats = "";
+      for (let k = -3; k <= 3; k++)
+        pleats += `<path d="M${150 + k * 5} 262 Q${150 + k * 12} 330 ${150 + k * 17} 396" fill="none" stroke="${dk}" stroke-width="2" opacity=".28"/>`;
+      return `<path d="${symmetric(left)}" fill="${c}" ${OUT}/>${pleats}${waist}`;
+    }
+    case "wide": {
+      const left = [...edge(246, 298, -1, 1.5), [108, 426]];
+      const d = curve(left, "M") + ` L143 426 L148 322 L152 322 L157 426 L${300 - 108} 426 ` + curve(mirror(left).slice(1), "L") + "Z";
+      return `<path d="${d}" fill="${c}" ${OUT}/>${waist}
+              <path d="M130 270 L125 424 M170 270 L175 424" stroke="${dk}" stroke-width="2" opacity=".3"/>
+              <rect x="143" y="243" width="14" height="11" rx="2" fill="#d9b45c" ${OUT}/>`;
+    }
+    case "jeans": {
+      const left = [...edge(246, 298, -1, 1.5), [118, 360], [124, 428]];
+      const d = curve(left, "M") + ` L145 428 L148 322 L152 322 L155 428 L${300 - 124} 428 ` + curve(mirror(left).slice(1), "L") + "Z";
+      return `<path d="${d}" fill="${c}" ${OUT}/>${waist}
+              <path d="M150 254 L150 322 M128 258 Q136 268 144 260 M172 258 Q164 268 156 260" fill="none" stroke="${lighter(c, .45)}" stroke-width="1.6" stroke-dasharray="3 2"/>
+              <circle cx="150" cy="249" r="3" fill="#d9b45c"/>`;
+    }
+    case "shorts": {
+      const left = [...edge(246, 298, -1, 1.5), [112, 346]];
+      const d = curve(left, "M") + ` L146 346 L148 318 L152 318 L154 346 L${300 - 112} 346 ` + curve(mirror(left).slice(1), "L") + "Z";
+      return `<path d="${d}" fill="${c}" ${OUT}/>${waist}
+              <path d="M130 262 L127 344 M170 262 L173 344" stroke="${dk}" stroke-width="2" opacity=".3"/>`;
+    }
   }
   return "";
 }
 
 function topWear(style, c) {
-  const torso = `<path d="M112 178 Q150 192 188 178 L190 298 L110 298Z" fill="${c}" ${OUT}/>`;
-  const shortSleeves = `<path d="M114 178 L86 205 L100 228 L120 205Z" fill="${c}" ${OUT}/><path d="M186 178 L214 205 L200 228 L180 205Z" fill="${c}" ${OUT}/>`;
+  const dk = darker(c, .2), lt = lighter(c, .3);
+  const top = (y = 180) => ` L172 ${y - 2} Q150 218 128 ${y - 2}Z`;
   switch (style) {
-    case "tee":    return torso + shortSleeves;
-    case "heart":  return torso + shortSleeves + `<path d="${heartPath(150, 235, 1.5)}" fill="#fff" opacity=".9"/>`;
-    case "hoodie":
-      return `<line x1="108" y1="192" x2="96" y2="285" stroke="${c}" stroke-width="22" stroke-linecap="round"/>
-              <line x1="192" y1="192" x2="204" y2="285" stroke="${c}" stroke-width="22" stroke-linecap="round"/>` +
-             torso +
-             `<path d="M122 180 Q150 215 178 180 Q150 170 122 180Z" fill="rgba(0,0,0,.15)"/>
-              <path d="M125 262 L175 262 L180 290 L120 290Z" fill="rgba(0,0,0,.12)"/>`;
-    case "tank":
-      return `<path d="M124 182 L136 178 Q150 205 164 178 L176 182 L188 298 L112 298Z" fill="${c}" ${OUT}/>`;
+    case "tee": {
+      const L = edge(180, 292, -1, 1.5);
+      return `<path d="M115 178 Q99 186 91 210 L107 216 Q113 200 121 194Z" fill="${c}" ${OUT}/>
+              <path d="M185 178 Q201 186 209 210 L193 216 Q187 200 179 194Z" fill="${c}" ${OUT}/>
+              <path d="${curve(L, "M")} ${curve(mirror(L), "L")}${top()}" fill="${c}" ${OUT}/>`;
+    }
+    case "blouse": {
+      const L = edge(180, 286, -1, 4);
+      let buttons = "";
+      for (const y of [220, 238, 256, 274]) buttons += `<circle cx="150" cy="${y}" r="2" fill="${dk}"/>`;
+      return sleeves(c, THREEQ[0], THREEQ[1]) +
+        `<path d="M99 256 Q98 264 98 270 M201 256 Q202 264 202 270" fill="none" stroke="${dk}" stroke-width="18"/>
+         <path d="${curve(L, "M")} ${curve(mirror(L), "L")} L168 178 L150 204 L132 178Z" fill="${c}" ${OUT}/>
+         <path d="M132 178 L150 204 L126 198 L120 184Z M168 178 L150 204 L174 198 L180 184Z" fill="${lt}" ${OUT}/>
+         <path d="M150 204 L150 286" stroke="${dk}" stroke-width="1.5" opacity=".5"/>${buttons}`;
+    }
+    case "wrap": {
+      const L = edge(180, 278, -1, 1.5);
+      return sleeves(c, THREEQ[0], THREEQ[1], 16) +
+        `<path d="${curve(L, "M")} ${curve(mirror(L), "L")} L166 178 L150 214 L134 178Z" fill="${c}" ${OUT}/>
+         <path d="M134 178 L150 214 L180 262 L186 278 L128 278 Q121 236 134 178Z" fill="rgba(255,255,255,.14)" ${OUT}/>
+         <circle cx="181" cy="266" r="4" fill="${dk}"/>
+         <path d="M181 266 Q192 276 186 292 M181 266 Q173 280 176 294" fill="none" stroke="${dk}" stroke-width="3" stroke-linecap="round"/>`;
+    }
+    case "turtle": {
+      const L = edge(180, 292, -1, 1);
+      return sleeves(c, LONG[0], LONG[1]) +
+        `<path d="${curve(L, "M")} ${curve(mirror(L), "L")} L164 180 L136 180Z" fill="${c}" ${OUT}/>
+         <path d="M138 146 L162 146 L165 186 L135 186Z" fill="${c}" ${OUT}/>
+         <path d="M137 156 L163 156 M136 166 L164 166 M135 176 L165 176" stroke="${dk}" stroke-width="1.6" opacity=".4"/>`;
+    }
+    case "blazer": {
+      const inner = edge(180, 290, -1, 0);
+      const jl = edge(180, 296, -1, 3);
+      const panelL = `${curve(jl, "M")} L147 296 L146 262 L136 214 L128 180Z`;
+      const panelR = `${curve(mirror(jl), "M")} L153 296 L154 262 L164 214 L172 180Z`;
+      return sleeves(c, LONG[0], LONG[1], 18) +
+        `<path d="${curve(inner, "M")} ${curve(mirror(inner), "L")} L162 180 Q150 202 138 180Z" fill="${lighter(c, .82)}" ${OUT}/>
+         <path d="${panelL}" fill="${c}" ${OUT}/><path d="${panelR}" fill="${c}" ${OUT}/>
+         <path d="M127 180 L146 244 L137 214 L120 198Z M173 180 L154 244 L163 214 L180 198Z" fill="${dk}" ${OUT}/>
+         <path d="M120 270 L135 268 M180 270 L165 268" stroke="${dk}" stroke-width="2" opacity=".5"/>`;
+    }
+    case "tank": {
+      const L = edge(205, 290, -1, 0);
+      return `<path d="M134 178 L126 181 Q119 196 ${fp(L[0])} ${curve(L, "L")} ${curve(mirror(L), "L")} Q181 196 174 181 L166 178 Q150 212 134 178Z" fill="${c}" ${OUT}/>
+              <path d="M138 214 Q150 222 162 214" fill="none" stroke="${lt}" stroke-width="2" opacity=".7"/>`;
+    }
   }
   return "";
 }
 
 function dressWear(style, c) {
+  const dk = darker(c, .2), lt = lighter(c, .3);
   switch (style) {
-    case "party":
-      return `<path d="M112 178 Q150 192 188 178 L192 215 L220 375 Q150 392 80 375 L108 215Z" fill="${c}" ${OUT}/>
-              <rect x="108" y="212" width="84" height="10" fill="rgba(255,255,255,.55)"/>
-              <path d="M114 178 L90 200 L102 218 L122 200Z M186 178 L210 200 L198 218 L178 200Z" fill="${c}" ${OUT}/>`;
-    case "sun":
-      return `<path d="M124 182 L136 178 Q150 205 164 178 L176 182 L188 235 L215 365 Q150 380 85 365 L112 235Z" fill="${c}" ${OUT}/>
-              <circle cx="130" cy="290" r="5" fill="#fff" opacity=".8"/><circle cx="165" cy="315" r="5" fill="#fff" opacity=".8"/>
-              <circle cx="145" cy="340" r="5" fill="#fff" opacity=".8"/><circle cx="185" cy="280" r="5" fill="#fff" opacity=".8"/>
-              <circle cx="115" cy="335" r="5" fill="#fff" opacity=".8"/>`;
-    case "gown":
-      return `<path d="M120 180 Q150 195 180 180 L186 230 L240 420 Q150 445 60 420 L114 230Z" fill="${c}" ${OUT}/>
-              <rect x="112" y="226" width="76" height="9" fill="#ffd23f"/>
-              <path d="M114 178 Q96 186 94 206 L120 200Z M186 178 Q204 186 206 206 L180 200Z" fill="${c}" ${OUT}/>
-              <circle cx="150" cy="231" r="6" fill="#ffd23f"/>`;
+    case "wrap": {
+      const left = [...edge(180, 246, -1, 1.5), [106, 300], [92, 366]];
+      return `<path d="M115 178 Q97 187 90 214 Q108 220 120 198Z M185 178 Q203 187 210 214 Q192 220 180 198Z" fill="${c}" ${OUT}/>
+              <path d="${symmetric(left)} " fill="${c}" ${OUT}/>
+              <path d="M134 178 L150 214 L182 250 L196 366 L108 366 Q117 290 128 246 Q121 210 134 178Z" fill="rgba(255,255,255,.12)" ${OUT}/>
+              <path d="${band(238, 252, 1)}" fill="${dk}" ${OUT}/>
+              <circle cx="124" cy="250" r="5" fill="${dk}"/>
+              <path d="M124 250 Q110 262 114 284 M124 250 Q132 268 128 288" fill="none" stroke="${dk}" stroke-width="3.5" stroke-linecap="round"/>`;
+    }
+    case "cocktail": {
+      const left = [[116, 205], ...edge(205, 298, -1, 2).slice(1), [115, 332], [119, 366]];
+      return `<path d="M118 180 Q116 194 116 205 ${curve(left.slice(1), "L")} ${curve(mirror(left).slice(0, -1), "L")} L184 205 Q184 194 182 180 Q150 196 118 180Z" fill="${c}" ${OUT}/>
+              <path d="M132 214 Q142 244 128 250 M168 214 Q158 244 172 250" fill="none" stroke="${dk}" stroke-width="2" opacity=".45"/>
+              <path d="M150 262 L150 366" stroke="${dk}" stroke-width="1.5" opacity=".25"/>
+              <path d="${band(244, 252, 1)}" fill="${dk}" opacity=".5"/>`;
+    }
+    case "gown": {
+      const left = [[116, 206], ...edge(206, 298, -1, 1.5).slice(1), [100, 340], [68, 420], [60, 436]];
+      return `<path d="${curve(left, "M")} L150 440 ${curve(mirror(left), "L")} Q166 192 150 208 Q134 192 116 206Z" fill="${c}" ${OUT}/>
+              <path d="${band(244, 254, 1)}" fill="#e8c768" ${OUT}/>
+              <path d="M126 262 Q112 350 96 430 M150 270 L150 436 M174 262 Q188 350 204 430" fill="none" stroke="${dk}" stroke-width="2" opacity=".25"/>
+              <path d="M120 216 Q150 232 180 216" fill="none" stroke="${lt}" stroke-width="2.5" opacity=".7"/>`;
+    }
+    case "sun": {
+      const left = [...edge(205, 246, -1, 0), [114, 270], [98, 310], [86, 356]];
+      let dots = "";
+      for (const [x, y] of [[124, 300], [150, 320], [174, 296], [112, 338], [140, 346], [188, 336], [162, 275]])
+        dots += `<circle cx="${x}" cy="${y}" r="4" fill="#fff" opacity=".75"/>`;
+      return `<path d="M134 178 L126 181 Q119 196 ${fp(left[0])} ${curve(left, "L")} ${curve(mirror(left), "L")} Q181 196 174 181 L166 178 Q150 206 134 178Z" fill="${c}" ${OUT}/>
+              ${dots}<path d="${band(240, 250, 1)}" fill="${dk}" opacity=".6"/>`;
+    }
   }
   return "";
 }
@@ -506,6 +631,12 @@ function acted(n) { sfx.pick(); sparkle(n); }
 
 /* ---------- Saved outfits (kept in this browser only) ---------- */
 const STORE = "dressup.saved";
+const OLD = { top: { heart: "tee", hoodie: "turtle" }, bottom: { skirt: "pencil", longskirt: "midi", pants: "jeans" }, dress: { party: "cocktail" } };
+function outfitOf(o) {
+  const out = { ...structuredClone(DEFAULTS), ...structuredClone(o) };
+  for (const k in OLD) if (OLD[k][out[k]]) out[k] = OLD[k][out[k]];
+  return out;
+}
 function loadSaved() {
   try { return JSON.parse(localStorage.getItem(STORE)) || []; } catch (e) { return []; }
 }
@@ -541,12 +672,12 @@ function renderSaved(box) {
   list.forEach((outfit, i) => {
     const item = document.createElement("div");
     item.className = "saved-item";
-    item.innerHTML = buildSvg({ ...structuredClone(DEFAULTS), ...outfit }, { uid: "saved" + i });
+    item.innerHTML = buildSvg(outfitOf(outfit), { uid: "saved" + i });
     const row = document.createElement("div");
     row.className = "row";
     const wear = document.createElement("button");
     wear.textContent = "Wear";
-    wear.onclick = () => { state = { ...structuredClone(DEFAULTS), ...structuredClone(outfit) }; render(); acted(6); };
+    wear.onclick = () => { state = outfitOf(outfit); render(); acted(6); };
     const del = document.createElement("button");
     del.textContent = "🗑️";
     del.setAttribute("aria-label", "Delete outfit");
