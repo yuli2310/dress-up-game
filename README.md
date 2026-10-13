@@ -1,6 +1,6 @@
 # ✨ Dress-Up Star
 
-A dress-up game that runs entirely in the browser. Choose a girl's hair, clothes, shoes, glasses, hats and accessories, then take her to the fashion show!
+A dress-up game that runs entirely in the browser. Choose a girl's hair, clothes, shoes, glasses, hats and accessories.
 
 **Play it:** https://yuli2310.github.io/dress-up-game/
 
@@ -21,10 +21,6 @@ Built with plain HTML, CSS and JavaScript. No backend, no database, no API keys,
 | 🔊 Sound on / 🔇 Sound off | Turns sound effects on or off |
 | 📷 Save picture | Downloads your character as a PNG |
 | ↩️ Start over | Resets to the default look |
-
-### 🎬 Fashion show
-
-A customer (like Queen Mia or Surfer Sam) asks for a themed look, for example "Princess ball" or "Beach day". A checklist shows what they want, and a yellow banner under the character shows your progress while you dress her. When you're ready, press **Walk the runway!** to earn 0 to 3 stars. Your total stars add up as you serve more customers.
 
 ### ⭐ My outfits
 

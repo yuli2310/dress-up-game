@@ -93,14 +93,8 @@
     .bob, .eyes, .char.twirl { animation: none; }
   }
 
-  /* banner + fashion show + saved outfits */
-  #banner { display: none; width: 100%; margin-top: 12px; text-align: left; background: #fff7d6; border-color: #ffd23f; }
-  #banner.on { display: block; }
-  .bubble { background: #fff7d6; border: 3px solid #ffd23f; border-radius: 18px; padding: 10px 14px; margin: 8px 0; }
-  .checklist { list-style: none; padding: 0; margin: 8px 0; }
-  .checklist li { padding: 4px 0; font-size: 1.05rem; }
+  /* saved outfits */
   .big { width: 100%; font-weight: bold; margin-top: 8px; }
-  .result { text-align: center; font-size: 1.3rem; margin: 10px 0; }
   .saved-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
   .saved-item { border: 3px solid var(--line); border-radius: 16px; padding: 6px; text-align: center; }
   .saved-item svg { width: 100%; height: auto; border-radius: 10px; display: block; }
@@ -117,7 +111,6 @@
 <main>
   <section class="stage">
     <div class="stagewrap" id="wrap"><div id="stage" aria-label="Your character"></div></div>
-    <button id="banner" aria-live="polite"></button>
     <div class="actions">
       <button class="primary" id="random">🎲 Surprise me!</button>
       <button id="twirl">💃 Twirl</button>
@@ -172,7 +165,6 @@ const CATS = [
   { id: "scene",   label: "🌈 Scene",   styleKey: "scene", styles: [
       ["sky", "Sunny sky"], ["candy", "Candy pink"], ["mint", "Mint garden"],
       ["sunset", "Sunset"], ["night", "Starry night"] ] },
-  { id: "show",    label: "🎬 Fashion show", special: "show" },
   { id: "saved",   label: "⭐ My outfits",   special: "saved" },
 ];
 
@@ -259,32 +251,59 @@ function hairBack(style, c) {
   }
 }
 function hairFront(style, c) {
-  let s = `<path d="M99 112 Q96 52 150 52 Q204 52 201 112 Q190 84 150 80 Q110 84 99 112Z" fill="${c}" ${OUT}/>`;
+  let s = `<path d="M97 120 Q88 50 150 48 Q212 50 203 120 Q198 98 186 88 Q160 76 138 88 Q112 94 97 120Z" fill="${c}" ${OUT}/>
+    <path d="M118 66 Q150 50 182 66 M130 80 Q158 66 184 82" fill="none" stroke="${lighter(c, .35)}" stroke-width="4" stroke-linecap="round" opacity=".55"/>`;
   if (style === "short") s += `<path d="M99 112 L96 135 Q104 120 108 112Z M201 112 L204 135 Q196 120 192 112Z" fill="${c}"/>`;
   if (style === "ponytail") s += `<circle cx="196" cy="100" r="7" fill="#ff5fa2"/>`;
   if (style === "pigtails") s += `<circle cx="92" cy="122" r="7" fill="#ff5fa2"/><circle cx="208" cy="122" r="7" fill="#ff5fa2"/>`;
   return s;
 }
 
+/* mix a hex color toward another (t = 0..1), used for natural shading */
+function mix(hex, to, t) {
+  const n = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const [a, b] = [n(hex), n(to)];
+  return "#" + a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, "0")).join("");
+}
+const darker  = (h, t) => mix(h, "#000000", t);
+const lighter = (h, t) => mix(h, "#ffffff", t);
+
 function body(skin) {
+  const sh = darker(skin, .14);
+  const limb = (d, w) => `<path d="${d}" fill="none" stroke="rgba(0,0,0,.2)" stroke-width="${w + 2}" stroke-linecap="round"/>
+                          <path d="${d}" fill="none" stroke="${skin}" stroke-width="${w}" stroke-linecap="round"/>`;
   return `
-    <rect x="122" y="300" width="24" height="132" rx="10" fill="${skin}" ${OUT}/>
-    <rect x="154" y="300" width="24" height="132" rx="10" fill="${skin}" ${OUT}/>
-    <line x1="108" y1="192" x2="96" y2="285" stroke="${skin}" stroke-width="18" stroke-linecap="round"/>
-    <line x1="192" y1="192" x2="204" y2="285" stroke="${skin}" stroke-width="18" stroke-linecap="round"/>
-    <circle cx="95" cy="292" r="10" fill="${skin}"/><circle cx="205" cy="292" r="10" fill="${skin}"/>
-    <rect x="140" y="150" width="20" height="35" fill="${skin}"/>
-    <path d="M112 178 Q150 192 188 178 L190 300 L110 300Z" fill="${skin}"/>`;
+    <path d="M122 298 L146 298 Q147 360 142 428 L128 428 Q122 360 122 298Z" fill="${skin}" ${OUT}/>
+    <path d="M154 298 L178 298 Q178 360 172 428 L158 428 Q153 360 154 298Z" fill="${skin}" ${OUT}/>
+    <path d="M144 310 Q145 365 141 424 M156 310 Q155 365 159 424" fill="none" stroke="${sh}" stroke-width="3" stroke-linecap="round" opacity=".6"/>
+    ${limb("M109 190 Q98 240 97 284", 15)}
+    ${limb("M191 190 Q202 240 203 284", 15)}
+    <ellipse cx="97" cy="294" rx="8" ry="11" fill="${skin}" ${OUT}/><ellipse cx="203" cy="294" rx="8" ry="11" fill="${skin}" ${OUT}/>
+    <path d="M140 148 L160 148 L162 184 Q150 192 138 184Z" fill="${skin}"/>
+    <path d="M140 148 L160 148 L160 168 Q150 176 140 168Z" fill="${sh}" opacity=".7"/>
+    <path d="M114 178 Q150 192 186 178 Q181 240 185 300 L115 300 Q119 240 114 178Z" fill="${skin}"/>`;
 }
 
-function face(skin) {
+function face(skin, hair) {
+  const sh = darker(skin, .18);
+  const brow = darker(hair, .25);
+  const eye = x => `
+    <ellipse cx="${x}" cy="114" rx="8.5" ry="5.5" fill="#fff" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
+    <circle cx="${x}" cy="114" r="4.6" fill="#5b3a29"/><circle cx="${x}" cy="114" r="2.1" fill="#1b1212"/>
+    <circle cx="${x + 1.6}" cy="112.4" r="1.4" fill="#fff"/>`;
   return `
-    <circle cx="150" cy="110" r="50" fill="${skin}" ${OUT}/>
+    <ellipse cx="103" cy="118" rx="6" ry="9" fill="${skin}" ${OUT}/><ellipse cx="197" cy="118" rx="6" ry="9" fill="${skin}" ${OUT}/>
+    <path d="M104 108 Q104 56 150 56 Q196 56 196 108 Q196 150 150 164 Q104 150 104 108Z" fill="${skin}" ${OUT}/>
     <g class="eyes" style="animation-delay:-${(performance.now() / 1000 % 4).toFixed(2)}s">
-    <ellipse cx="132" cy="113" rx="6" ry="8" fill="#2b2b3a"/><ellipse cx="168" cy="113" rx="6" ry="8" fill="#2b2b3a"/>
-    <circle cx="134" cy="110" r="2.2" fill="#fff"/><circle cx="170" cy="110" r="2.2" fill="#fff"/></g>
-    <circle cx="118" cy="128" r="8" fill="#ff8fa3" opacity=".45"/><circle cx="182" cy="128" r="8" fill="#ff8fa3" opacity=".45"/>
-    <path d="M138 128 Q150 142 162 128" fill="none" stroke="#b5384f" stroke-width="3" stroke-linecap="round"/>`;
+      ${eye(132)}${eye(168)}
+      <path d="M122 113 Q132 106 142 113 M158 113 Q168 106 178 113" fill="none" stroke="#2b2b3a" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M122 113 L119 110 M178 113 L181 110" stroke="#2b2b3a" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <path d="M122 101 Q132 94 143 99 M157 99 Q168 94 178 101" fill="none" stroke="${brow}" stroke-width="3" stroke-linecap="round"/>
+    <path d="M150 120 Q146 131 151 133 M146 134 Q150 137 155 134" fill="none" stroke="${sh}" stroke-width="2" stroke-linecap="round" opacity=".8"/>
+    <circle cx="121" cy="133" r="9" fill="#ff8fa3" opacity=".28"/><circle cx="179" cy="133" r="9" fill="#ff8fa3" opacity=".28"/>
+    <path d="M140 144 Q150 152 160 144" fill="none" stroke="#b5384f" stroke-width="2.8" stroke-linecap="round"/>
+    <path d="M145 148 Q150 152 155 148" fill="none" stroke="#e8798d" stroke-width="2" stroke-linecap="round"/>`;
 }
 
 function bottomWear(style, c) {
@@ -425,7 +444,7 @@ function buildSvg(s, { uid = "main", animated = false } = {}) {
     ${body(s.skin)}
     ${shoeWear(s.shoes, s.shoeColor)}
     ${hasDress ? dressWear(s.dress, s.dressColor) : bottomWear(s.bottom, s.bottomColor) + topWear(s.top, s.topColor)}
-    ${face(s.skin)}
+    ${face(s.skin, s.hairColor)}
     ${hairFront(s.hair, s.hairColor)}
     ${glassesWear(s.glasses, s.glassColor)}
     ${hatWear(s.hat, s.hatColor)}
@@ -437,7 +456,6 @@ function buildSvg(s, { uid = "main", animated = false } = {}) {
 function render() {
   document.getElementById("stage").innerHTML = buildSvg(state, { animated: true });
   renderOptions();
-  renderBanner();
 }
 
 /* ---------- Sound (generated in the browser, no files needed) ---------- */
@@ -461,11 +479,6 @@ const sfx = {
   random() { [523, 659, 784, 1047].forEach((f, i) => tone(f, .12, "triangle", i * .07)); },
   save()   { tone(784, .1, "sine"); tone(1047, .2, "sine", .1); },
   twirl()  { [392, 523, 659, 784, 988].forEach((f, i) => tone(f, .1, "sine", i * .06)); },
-  win(stars) {
-    if (stars === 0) { tone(300, .2, "sawtooth"); tone(220, .3, "sawtooth", .18); return; }
-    const notes = [523, 659, 784, 1047, 1319].slice(0, 2 + stars);
-    notes.forEach((f, i) => tone(f, .18, "triangle", i * .12));
-  },
 };
 
 /* ---------- Sparkles & twirl ---------- */
@@ -498,105 +511,6 @@ function loadSaved() {
 }
 function storeSaved(list) {
   try { localStorage.setItem(STORE, JSON.stringify(list)); return true; } catch (e) { return false; }
-}
-
-/* ---------- Fashion show game ---------- */
-const CHALLENGES = [
-  { name: "Princess ball", who: "👸 Queen Mia", want: [
-      ["a crown", s => s.hat === "crown"], ["a princess gown", s => s.dress === "gown"],
-      ["a necklace", s => s.extras.includes("necklace")], ["a magic wand", s => s.extras.includes("wand")] ] },
-  { name: "Beach day", who: "🏖️ Surfer Sam", want: [
-      ["a sun hat", s => s.hat === "sunhat"], ["a sundress", s => s.dress === "sun"],
-      ["sunglasses", s => s.glasses === "sun"], ["sandals", s => s.shoes === "sandals"] ] },
-  { name: "Cozy winter", who: "⛄ Grandma Rose", want: [
-      ["a beanie", s => s.hat === "beanie"], ["a hoodie (no dress!)", s => s.dress === "none" && s.top === "hoodie"],
-      ["pants", s => s.dress === "none" && s.bottom === "pants"], ["boots", s => s.shoes === "boots"],
-      ["a scarf", s => s.extras.includes("scarf")] ] },
-  { name: "Fairy forest", who: "🧚 Tinkerbell", want: [
-      ["fairy wings", s => s.extras.includes("wings")], ["a magic wand", s => s.extras.includes("wand")],
-      ["a party dress", s => s.dress === "party"], ["earrings", s => s.extras.includes("earrings")],
-      ["the mint garden scene", s => s.scene === "mint"] ] },
-  { name: "Cool kitty", who: "😺 Luna the Cat", want: [
-      ["cat ears", s => s.hat === "ears"], ["round glasses", s => s.glasses === "round"],
-      ["shorts (no dress!)", s => s.dress === "none" && s.bottom === "shorts"], ["sneakers", s => s.shoes === "sneakers"] ] },
-  { name: "Pop star", who: "🎤 DJ Dana", want: [
-      ["pink hair", s => s.hairColor === HAIR[5]], ["sunglasses", s => s.glasses === "sun"],
-      ["a heart tee (no dress!)", s => s.dress === "none" && s.top === "heart"], ["boots", s => s.shoes === "boots"],
-      ["the starry night scene", s => s.scene === "night"] ] },
-  { name: "Birthday party", who: "🎂 Birthday Bella", want: [
-      ["a big bow", s => s.hat === "bow"], ["a party dress", s => s.dress === "party"],
-      ["buns or pigtails", s => s.hair === "buns" || s.hair === "pigtails"], ["the candy pink scene", s => s.scene === "candy"] ] },
-];
-const game = { ch: null, round: 0, total: 0, shown: false, stars: 0, last: -1 };
-
-function nextCustomer() {
-  let i;
-  do { i = Math.floor(Math.random() * CHALLENGES.length); } while (i === game.last && CHALLENGES.length > 1);
-  game.last = i; game.ch = CHALLENGES[i]; game.round++; game.shown = false; game.stars = 0;
-}
-const checks = () => game.ch.want.map(([, fn]) => fn(state));
-const starsFor = ok => {
-  const f = ok.filter(Boolean).length / ok.length;
-  return f === 1 ? 3 : f >= 0.6 ? 2 : f > 0 ? 1 : 0;
-};
-
-function renderBanner() {
-  const b = document.getElementById("banner");
-  if (!game.ch || game.shown) { b.className = ""; b.textContent = ""; return; }
-  const ok = checks().filter(Boolean).length;
-  b.className = "on";
-  b.textContent = `${game.ch.who} wants a "${game.ch.name}" look: ${ok}/${game.ch.want.length} ✓ (tap to open)`;
-}
-
-function renderShow(box) {
-  if (!game.ch) nextCustomer();
-  const ok = checks();
-  const h = document.createElement("h2");
-  h.textContent = `🎬 Customer #${game.round} · Total ⭐ ${game.total}`;
-  box.appendChild(h);
-
-  const bubble = document.createElement("div");
-  bubble.className = "bubble";
-  bubble.innerHTML = `<b>${game.ch.who}</b> says:<br>“Please dress her for <b>${game.ch.name}</b>! I need:”`;
-  box.appendChild(bubble);
-
-  const ul = document.createElement("ul");
-  ul.className = "checklist";
-  game.ch.want.forEach(([label], i) => {
-    const li = document.createElement("li");
-    li.textContent = (ok[i] ? "✅ " : "⬜ ") + label;
-    ul.appendChild(li);
-  });
-  box.appendChild(ul);
-
-  if (!game.shown) {
-    const go = document.createElement("button");
-    go.className = "primary big";
-    go.textContent = "🎤 Walk the runway!";
-    go.onclick = () => {
-      game.stars = starsFor(ok); game.total += game.stars; game.shown = true;
-      sfx.win(game.stars); sparkle(4 + game.stars * 5);
-      if (game.stars > 0) twirl();
-      render();
-    };
-    box.appendChild(go);
-    const skip = document.createElement("button");
-    skip.className = "big";
-    skip.textContent = "Skip this customer";
-    skip.onclick = () => { nextCustomer(); sfx.pick(); render(); };
-    box.appendChild(skip);
-  } else {
-    const msg = ["Oops! Try again with the next customer.", "Nice try!", "Great job!", "PERFECT! Superstar!"][game.stars];
-    const r = document.createElement("div");
-    r.className = "result";
-    r.innerHTML = `${"⭐".repeat(game.stars) || "💔"}<br>${msg}`;
-    box.appendChild(r);
-    const next = document.createElement("button");
-    next.className = "secondary big";
-    next.textContent = "Next customer ➡️";
-    next.onclick = () => { nextCustomer(); sfx.pick(); render(); };
-    box.appendChild(next);
-  }
 }
 
 function renderSaved(box) {
@@ -667,7 +581,6 @@ function renderOptions() {
   const box = document.getElementById("options");
   box.innerHTML = "";
 
-  if (cat.special === "show") return renderShow(box);
   if (cat.special === "saved") return renderSaved(box);
 
   if (cat.styles) {
@@ -753,8 +666,6 @@ document.getElementById("mute").onclick = e => {
   e.currentTarget.setAttribute("aria-pressed", muted);
   if (!muted) sfx.pick();
 };
-
-document.getElementById("banner").onclick = () => { currentTab = "show"; renderTabs(); renderOptions(); };
 
 document.getElementById("save").onclick = () => {
   const svg = document.querySelector("#stage svg");
