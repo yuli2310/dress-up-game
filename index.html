@@ -78,6 +78,34 @@
   }
   .swatch[aria-pressed="true"] { box-shadow: 0 0 0 4px var(--accent-2); }
   .hint { font-size: .9rem; opacity: .8; margin: 8px 0 0; }
+
+  /* animations */
+  .bob { animation: bob 3s ease-in-out infinite; }
+  .char.twirl { transform-box: fill-box; transform-origin: center; animation: twirl .9s ease-in-out; }
+  .eyes { transform-box: fill-box; transform-origin: center; animation: blink 4s infinite; }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  @keyframes twirl { 0% { transform: scaleX(1); } 25% { transform: scaleX(0); } 50% { transform: scaleX(-1); } 75% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+  .stagewrap { position: relative; overflow: hidden; border-radius: 16px; }
+  .sparkle { position: absolute; pointer-events: none; font-size: 1.6rem; animation: floatUp 1s ease-out forwards; }
+  @keyframes floatUp { from { opacity: 1; transform: translateY(0) scale(.6); } to { opacity: 0; transform: translateY(-70px) scale(1.3); } }
+  @media (prefers-reduced-motion: reduce) {
+    .bob, .eyes, .char.twirl { animation: none; }
+  }
+
+  /* banner + fashion show + saved outfits */
+  #banner { display: none; width: 100%; margin-top: 12px; text-align: left; background: #fff7d6; border-color: #ffd23f; }
+  #banner.on { display: block; }
+  .bubble { background: #fff7d6; border: 3px solid #ffd23f; border-radius: 18px; padding: 10px 14px; margin: 8px 0; }
+  .checklist { list-style: none; padding: 0; margin: 8px 0; }
+  .checklist li { padding: 4px 0; font-size: 1.05rem; }
+  .big { width: 100%; font-weight: bold; margin-top: 8px; }
+  .result { text-align: center; font-size: 1.3rem; margin: 10px 0; }
+  .saved-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
+  .saved-item { border: 3px solid var(--line); border-radius: 16px; padding: 6px; text-align: center; }
+  .saved-item svg { width: 100%; height: auto; border-radius: 10px; display: block; }
+  .saved-item .row { display: flex; gap: 4px; margin-top: 4px; }
+  .saved-item button { flex: 1; padding: 4px; font-size: .85rem; }
 </style>
 </head>
 <body>
@@ -88,9 +116,14 @@
 
 <main>
   <section class="stage">
-    <div id="stage" aria-label="Your character"></div>
+    <div class="stagewrap" id="wrap"><div id="stage" aria-label="Your character"></div></div>
+    <button id="banner" aria-live="polite"></button>
     <div class="actions">
       <button class="primary" id="random">🎲 Surprise me!</button>
+      <button id="twirl">💃 Twirl</button>
+      <button id="mute" aria-pressed="false">🔊 Sound on</button>
+    </div>
+    <div class="actions">
       <button class="secondary" id="save">📷 Save picture</button>
       <button id="reset">↩️ Start over</button>
     </div>
@@ -139,6 +172,8 @@ const CATS = [
   { id: "scene",   label: "🌈 Scene",   styleKey: "scene", styles: [
       ["sky", "Sunny sky"], ["candy", "Candy pink"], ["mint", "Mint garden"],
       ["sunset", "Sunset"], ["night", "Starry night"] ] },
+  { id: "show",    label: "🎬 Fashion show", special: "show" },
+  { id: "saved",   label: "⭐ My outfits",   special: "saved" },
 ];
 
 const DEFAULTS = {
@@ -175,7 +210,7 @@ function starPoints(cx, cy, R, r) {
 }
 
 /* ---------- Scene backgrounds ---------- */
-function scene(kind) {
+function scene(kind, uid) {
   const grads = {
     sky:    ["#9be0ff", "#e8f9ff", "#7bd88f"],
     candy:  ["#ffc2e2", "#fff0f8", "#ffa6d0"],
@@ -200,9 +235,9 @@ function scene(kind) {
   } else if (kind === "sunset") {
     extra += `<circle cx="150" cy="330" r="60" fill="#ffd36e" opacity=".8"/>`;
   }
-  return `<defs><linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+  return `<defs><linearGradient id="bg-${uid}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="${grads[0]}"/><stop offset="1" stop-color="${grads[1]}"/></linearGradient></defs>
-    <rect width="300" height="480" fill="url(#bgGrad)"/>${extra}
+    <rect width="300" height="480" fill="url(#bg-${uid})"/>${extra}
     <ellipse cx="150" cy="450" rx="170" ry="40" fill="${grads[2]}"/>`;
 }
 
@@ -245,8 +280,9 @@ function body(skin) {
 function face(skin) {
   return `
     <circle cx="150" cy="110" r="50" fill="${skin}" ${OUT}/>
+    <g class="eyes" style="animation-delay:-${(performance.now() / 1000 % 4).toFixed(2)}s">
     <ellipse cx="132" cy="113" rx="6" ry="8" fill="#2b2b3a"/><ellipse cx="168" cy="113" rx="6" ry="8" fill="#2b2b3a"/>
-    <circle cx="134" cy="110" r="2.2" fill="#fff"/><circle cx="170" cy="110" r="2.2" fill="#fff"/>
+    <circle cx="134" cy="110" r="2.2" fill="#fff"/><circle cx="170" cy="110" r="2.2" fill="#fff"/></g>
     <circle cx="118" cy="128" r="8" fill="#ff8fa3" opacity=".45"/><circle cx="182" cy="128" r="8" fill="#ff8fa3" opacity=".45"/>
     <path d="M138 128 Q150 142 162 128" fill="none" stroke="#b5384f" stroke-width="3" stroke-linecap="round"/>`;
 }
@@ -378,11 +414,12 @@ function extraFront(list) {
 }
 
 /* ---------- Render ---------- */
-function render() {
-  const s = state;
+function buildSvg(s, { uid = "main", animated = false } = {}) {
   const hasDress = s.dress !== "none";
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 480" role="img" aria-label="Dress-up character">
-    ${scene(s.scene)}
+  const bobDelay = (performance.now() / 1000 % 3).toFixed(2);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 480" role="img" aria-label="Dress-up character">
+    ${scene(s.scene, uid)}
+    <g class="${animated ? "bob" : ""}" style="animation-delay:-${bobDelay}s"><g class="char">
     ${extraBack(s.extras)}
     ${hairBack(s.hair, s.hairColor)}
     ${body(s.skin)}
@@ -393,9 +430,222 @@ function render() {
     ${glassesWear(s.glasses, s.glassColor)}
     ${hatWear(s.hat, s.hatColor)}
     ${extraFront(s.extras)}
+    </g></g>
   </svg>`;
-  document.getElementById("stage").innerHTML = svg;
+}
+
+function render() {
+  document.getElementById("stage").innerHTML = buildSvg(state, { animated: true });
   renderOptions();
+  renderBanner();
+}
+
+/* ---------- Sound (generated in the browser, no files needed) ---------- */
+let audio = null, muted = false;
+function tone(freq, dur = 0.12, type = "sine", when = 0, vol = 0.15) {
+  if (muted) return;
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    const t = audio.currentTime + when;
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g).connect(audio.destination);
+    o.start(t); o.stop(t + dur);
+  } catch (e) { /* sound is optional */ }
+}
+const sfx = {
+  pick()   { tone(660, .08, "triangle"); tone(880, .1, "triangle", .06); },
+  color()  { tone(440 + Math.random() * 440, .1, "sine"); },
+  random() { [523, 659, 784, 1047].forEach((f, i) => tone(f, .12, "triangle", i * .07)); },
+  save()   { tone(784, .1, "sine"); tone(1047, .2, "sine", .1); },
+  twirl()  { [392, 523, 659, 784, 988].forEach((f, i) => tone(f, .1, "sine", i * .06)); },
+  win(stars) {
+    if (stars === 0) { tone(300, .2, "sawtooth"); tone(220, .3, "sawtooth", .18); return; }
+    const notes = [523, 659, 784, 1047, 1319].slice(0, 2 + stars);
+    notes.forEach((f, i) => tone(f, .18, "triangle", i * .12));
+  },
+};
+
+/* ---------- Sparkles & twirl ---------- */
+function sparkle(n = 6) {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const wrap = document.getElementById("wrap");
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement("span");
+    el.className = "sparkle";
+    el.textContent = pick(["✨", "⭐", "💖", "🌟"]);
+    el.style.left = (10 + Math.random() * 75) + "%";
+    el.style.top = (15 + Math.random() * 65) + "%";
+    el.style.animationDelay = (Math.random() * .25) + "s";
+    wrap.appendChild(el);
+    setTimeout(() => el.remove(), 1400);
+  }
+}
+function twirl() {
+  const c = document.querySelector("#stage .char");
+  if (!c) return;
+  c.classList.remove("twirl"); void c.getBoundingClientRect(); c.classList.add("twirl");
+  sfx.twirl(); sparkle(8);
+}
+function acted(n) { sfx.pick(); sparkle(n); }
+
+/* ---------- Saved outfits (kept in this browser only) ---------- */
+const STORE = "dressup.saved";
+function loadSaved() {
+  try { return JSON.parse(localStorage.getItem(STORE)) || []; } catch (e) { return []; }
+}
+function storeSaved(list) {
+  try { localStorage.setItem(STORE, JSON.stringify(list)); return true; } catch (e) { return false; }
+}
+
+/* ---------- Fashion show game ---------- */
+const CHALLENGES = [
+  { name: "Princess ball", who: "👸 Queen Mia", want: [
+      ["a crown", s => s.hat === "crown"], ["a princess gown", s => s.dress === "gown"],
+      ["a necklace", s => s.extras.includes("necklace")], ["a magic wand", s => s.extras.includes("wand")] ] },
+  { name: "Beach day", who: "🏖️ Surfer Sam", want: [
+      ["a sun hat", s => s.hat === "sunhat"], ["a sundress", s => s.dress === "sun"],
+      ["sunglasses", s => s.glasses === "sun"], ["sandals", s => s.shoes === "sandals"] ] },
+  { name: "Cozy winter", who: "⛄ Grandma Rose", want: [
+      ["a beanie", s => s.hat === "beanie"], ["a hoodie (no dress!)", s => s.dress === "none" && s.top === "hoodie"],
+      ["pants", s => s.dress === "none" && s.bottom === "pants"], ["boots", s => s.shoes === "boots"],
+      ["a scarf", s => s.extras.includes("scarf")] ] },
+  { name: "Fairy forest", who: "🧚 Tinkerbell", want: [
+      ["fairy wings", s => s.extras.includes("wings")], ["a magic wand", s => s.extras.includes("wand")],
+      ["a party dress", s => s.dress === "party"], ["earrings", s => s.extras.includes("earrings")],
+      ["the mint garden scene", s => s.scene === "mint"] ] },
+  { name: "Cool kitty", who: "😺 Luna the Cat", want: [
+      ["cat ears", s => s.hat === "ears"], ["round glasses", s => s.glasses === "round"],
+      ["shorts (no dress!)", s => s.dress === "none" && s.bottom === "shorts"], ["sneakers", s => s.shoes === "sneakers"] ] },
+  { name: "Pop star", who: "🎤 DJ Dana", want: [
+      ["pink hair", s => s.hairColor === HAIR[5]], ["sunglasses", s => s.glasses === "sun"],
+      ["a heart tee (no dress!)", s => s.dress === "none" && s.top === "heart"], ["boots", s => s.shoes === "boots"],
+      ["the starry night scene", s => s.scene === "night"] ] },
+  { name: "Birthday party", who: "🎂 Birthday Bella", want: [
+      ["a big bow", s => s.hat === "bow"], ["a party dress", s => s.dress === "party"],
+      ["buns or pigtails", s => s.hair === "buns" || s.hair === "pigtails"], ["the candy pink scene", s => s.scene === "candy"] ] },
+];
+const game = { ch: null, round: 0, total: 0, shown: false, stars: 0, last: -1 };
+
+function nextCustomer() {
+  let i;
+  do { i = Math.floor(Math.random() * CHALLENGES.length); } while (i === game.last && CHALLENGES.length > 1);
+  game.last = i; game.ch = CHALLENGES[i]; game.round++; game.shown = false; game.stars = 0;
+}
+const checks = () => game.ch.want.map(([, fn]) => fn(state));
+const starsFor = ok => {
+  const f = ok.filter(Boolean).length / ok.length;
+  return f === 1 ? 3 : f >= 0.6 ? 2 : f > 0 ? 1 : 0;
+};
+
+function renderBanner() {
+  const b = document.getElementById("banner");
+  if (!game.ch || game.shown) { b.className = ""; b.textContent = ""; return; }
+  const ok = checks().filter(Boolean).length;
+  b.className = "on";
+  b.textContent = `${game.ch.who} wants a "${game.ch.name}" look: ${ok}/${game.ch.want.length} ✓ (tap to open)`;
+}
+
+function renderShow(box) {
+  if (!game.ch) nextCustomer();
+  const ok = checks();
+  const h = document.createElement("h2");
+  h.textContent = `🎬 Customer #${game.round} · Total ⭐ ${game.total}`;
+  box.appendChild(h);
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.innerHTML = `<b>${game.ch.who}</b> says:<br>“Please dress her for <b>${game.ch.name}</b>! I need:”`;
+  box.appendChild(bubble);
+
+  const ul = document.createElement("ul");
+  ul.className = "checklist";
+  game.ch.want.forEach(([label], i) => {
+    const li = document.createElement("li");
+    li.textContent = (ok[i] ? "✅ " : "⬜ ") + label;
+    ul.appendChild(li);
+  });
+  box.appendChild(ul);
+
+  if (!game.shown) {
+    const go = document.createElement("button");
+    go.className = "primary big";
+    go.textContent = "🎤 Walk the runway!";
+    go.onclick = () => {
+      game.stars = starsFor(ok); game.total += game.stars; game.shown = true;
+      sfx.win(game.stars); sparkle(4 + game.stars * 5);
+      if (game.stars > 0) twirl();
+      render();
+    };
+    box.appendChild(go);
+    const skip = document.createElement("button");
+    skip.className = "big";
+    skip.textContent = "Skip this customer";
+    skip.onclick = () => { nextCustomer(); sfx.pick(); render(); };
+    box.appendChild(skip);
+  } else {
+    const msg = ["Oops! Try again with the next customer.", "Nice try!", "Great job!", "PERFECT! Superstar!"][game.stars];
+    const r = document.createElement("div");
+    r.className = "result";
+    r.innerHTML = `${"⭐".repeat(game.stars) || "💔"}<br>${msg}`;
+    box.appendChild(r);
+    const next = document.createElement("button");
+    next.className = "secondary big";
+    next.textContent = "Next customer ➡️";
+    next.onclick = () => { nextCustomer(); sfx.pick(); render(); };
+    box.appendChild(next);
+  }
+}
+
+function renderSaved(box) {
+  const list = loadSaved();
+  const h = document.createElement("h2");
+  h.textContent = "⭐ My outfits";
+  box.appendChild(h);
+
+  const add = document.createElement("button");
+  add.className = "primary big";
+  add.textContent = "💾 Save this outfit";
+  add.onclick = () => {
+    if (list.length >= 12) { alert("You can keep 12 outfits. Delete one first!"); return; }
+    if (!storeSaved([...list, structuredClone(state)])) { alert("Sorry, this browser won't let me save outfits."); return; }
+    sfx.save(); sparkle(8); renderOptions();
+  };
+  box.appendChild(add);
+
+  if (!list.length) {
+    const p = document.createElement("p");
+    p.className = "hint";
+    p.textContent = "No saved outfits yet. Make a look you love and press Save!";
+    box.appendChild(p);
+    return;
+  }
+  const grid = document.createElement("div");
+  grid.className = "saved-grid";
+  list.forEach((outfit, i) => {
+    const item = document.createElement("div");
+    item.className = "saved-item";
+    item.innerHTML = buildSvg({ ...structuredClone(DEFAULTS), ...outfit }, { uid: "saved" + i });
+    const row = document.createElement("div");
+    row.className = "row";
+    const wear = document.createElement("button");
+    wear.textContent = "Wear";
+    wear.onclick = () => { state = { ...structuredClone(DEFAULTS), ...structuredClone(outfit) }; render(); acted(6); };
+    const del = document.createElement("button");
+    del.textContent = "🗑️";
+    del.setAttribute("aria-label", "Delete outfit");
+    del.onclick = () => { storeSaved(list.filter((_, j) => j !== i)); sfx.pick(); renderOptions(); };
+    row.append(wear, del);
+    item.appendChild(row);
+    grid.appendChild(item);
+  });
+  box.appendChild(grid);
+  const p = document.createElement("p");
+  p.className = "hint";
+  p.textContent = "Outfits are saved in this browser on this computer.";
+  box.appendChild(p);
 }
 
 /* ---------- Menu ---------- */
@@ -417,6 +667,9 @@ function renderOptions() {
   const box = document.getElementById("options");
   box.innerHTML = "";
 
+  if (cat.special === "show") return renderShow(box);
+  if (cat.special === "saved") return renderSaved(box);
+
   if (cat.styles) {
     const h = document.createElement("h2");
     h.textContent = cat.multi ? "Pick your extras" : "Pick a style";
@@ -435,6 +688,7 @@ function renderOptions() {
           state[cat.styleKey] = value;
         }
         render();
+        acted(3);
       };
       grid.appendChild(b);
     }
@@ -453,7 +707,7 @@ function renderOptions() {
       b.style.background = color;
       b.setAttribute("aria-label", "Color " + color);
       b.setAttribute("aria-pressed", state[cat.colorKey] === color);
-      b.onclick = () => { state[cat.colorKey] = color; render(); };
+      b.onclick = () => { state[cat.colorKey] = color; render(); sfx.color(); sparkle(2); };
       row.appendChild(b);
     }
     box.appendChild(row);
@@ -482,12 +736,25 @@ document.getElementById("random").onclick = () => {
   if (Math.random() < 0.7) next.dress = "none";
   state = next;
   render();
+  sfx.random(); sparkle(10);
 };
 
 document.getElementById("reset").onclick = () => {
   state = structuredClone(DEFAULTS);
   render();
+  sfx.pick();
 };
+
+document.getElementById("twirl").onclick = twirl;
+
+document.getElementById("mute").onclick = e => {
+  muted = !muted;
+  e.currentTarget.textContent = muted ? "🔇 Sound off" : "🔊 Sound on";
+  e.currentTarget.setAttribute("aria-pressed", muted);
+  if (!muted) sfx.pick();
+};
+
+document.getElementById("banner").onclick = () => { currentTab = "show"; renderTabs(); renderOptions(); };
 
 document.getElementById("save").onclick = () => {
   const svg = document.querySelector("#stage svg");
