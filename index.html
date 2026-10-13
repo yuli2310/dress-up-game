@@ -124,7 +124,18 @@
   @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
   .sparkle { position: absolute; pointer-events: none; font-size: 1.6rem; animation: floatUp 1s ease-out forwards; }
   @keyframes floatUp { from { opacity: 1; transform: translateY(0) scale(.6); } to { opacity: 0; transform: translateY(-70px) scale(1.3); } }
-  @media (prefers-reduced-motion: reduce) { .bob, .eyes, .char.twirl { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .bob, .walk, .eyes, .char.twirl, .beam, .conf, .win, .wavehand { animation: none; } }
+
+  .walk { animation: sway 1.4s ease-in-out infinite; transform-origin: 150px 480px; }
+  @keyframes sway { 0%, 100% { transform: translateX(-3px) rotate(-1.2deg); } 50% { transform: translateX(3px) rotate(1.2deg); } }
+  .beam { animation: sweep 7s ease-in-out infinite alternate; }
+  @keyframes sweep { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+  .conf { transform-box: fill-box; transform-origin: center; animation: fall 7s linear infinite; }
+  @keyframes fall { from { transform: translateY(0) rotate(0deg); } to { transform: translateY(560px) rotate(600deg); } }
+  .win { animation: twinkle 3s ease-in-out infinite; }
+  @keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .2; } }
+  .wavehand { animation: wavehand .7s ease-in-out infinite alternate; }
+  @keyframes wavehand { from { transform: rotate(-16deg); } to { transform: rotate(16deg); } }
 
   /* saved outfits */
   .saved-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
@@ -173,6 +184,14 @@ const GLASS  = ["#2b2b3a", "#ff5fa2", "#3fb6ff", "#ffd23f", "#7b61ff", "#e63946"
 /* ---------- Categories shown in the menu ---------- */
 const CATS = [
   { id: "skin",    label: "🧑 Skin",    colorKey: "skin", colors: SKIN },
+  { id: "face",    label: "💄 Face", sections: [
+      { title: "Eye color", key: "eyeColor", colors: ["#5b3a29", "#8a6a2f", "#3f9a5a", "#3f8fd1", "#8a98a8", "#9b6bff"] },
+      { title: "Lashes", key: "lashes", options: [["natural", "Natural"], ["long", "Long"], ["wing", "Winged liner"], ["none", "None"]] },
+      { title: "Eyeshadow", key: "shadow", colors: ["none", "#ff9ad0", "#b58cff", "#6ec6ff", "#ffcf6e", "#7a4a3a"] },
+      { title: "Eyebrows", key: "brows", options: [["soft", "Soft"], ["thick", "Thick"], ["thin", "Thin"], ["arched", "Arched"]] },
+      { title: "Lipstick", key: "lipColor", colors: ["#e8798d", "#c4415d", "#c1121f", "#8a2250", "#ff6f61", "#c98b84", "#ff2d95"] },
+      { title: "Smile", key: "mouth", options: [["smile", "Smile"], ["grin", "Big grin"], ["pout", "Pout"]] },
+    ] },
   { id: "hair",    label: "💇 Hair",    styleKey: "hair", colorKey: "hairColor", colors: HAIR, styles: [
       ["long", "Long"], ["wavy", "Wavy"], ["bob", "Bob"], ["short", "Short"], ["pixie", "Pixie"],
       ["ponytail", "Ponytail"], ["pigtails", "Pigtails"], ["braid", "Side braid"], ["buns", "Buns"],
@@ -205,8 +224,11 @@ const CATS = [
       ["clip", "Hair clip"], ["wand", "Magic wand"], ["wings", "Fairy wings"], ["sticker", "Star sticker"] ],
       hint: "You can pick as many as you like!" },
   { id: "scene",   label: "✨ Scene",   styleKey: "scene", styles: [
-      ["glam", "Glam stage"], ["sky", "Sunny sky"], ["candy", "Candy pink"], ["mint", "Mint garden"],
+      ["glam", "Glam stage"], ["confetti", "Confetti party"], ["city", "City night"], ["sky", "Sunny sky"], ["candy", "Candy pink"], ["mint", "Mint garden"],
       ["sunset", "Sunset"], ["night", "Starry night"] ] },
+  { id: "pose",    label: "🧍 Pose",    styleKey: "pose", styles: [
+      ["stand", "Standing"], ["hip", "Hand on hip"], ["power", "Power pose"], ["wave", "Wave hello"], ["runway", "Runway walk"] ],
+      hint: "Runway walk and Wave hello are animated!" },
   { id: "saved",   label: "⭐ My outfits",   special: "saved" },
 ];
 
@@ -221,6 +243,8 @@ const DEFAULTS = {
   hat: "none", hatColor: CLOTH[7],
   extras: [],
   scene: "glam",
+  pose: "stand",
+  eyeColor: "#5b3a29", lashes: "natural", shadow: "none", brows: "soft", lipColor: "#c4415d", mouth: "smile",
 };
 
 let state = structuredClone(DEFAULTS);
@@ -247,14 +271,23 @@ function starPoints(cx, cy, R, r) {
 }
 
 /* ---------- Scene backgrounds ---------- */
-function scene(kind, uid) {
+function rng(seed) {
+  return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+// keeps an animation going smoothly when the picture is redrawn
+const animStyle = (d, off = 0) => `animation-duration:${d.toFixed(2)}s;animation-delay:-${((performance.now() / 1000 + off) % d).toFixed(2)}s`;
+
+function scene(kind, uid, animated = false) {
   const grads = {
-    glam:   ["#4d2aa8", "#e08cf0", "#c06ad8"],
-    sky:    ["#9be0ff", "#e8f9ff", "#7bd88f"],
-    candy:  ["#ffc2e2", "#fff0f8", "#ffa6d0"],
-    mint:   ["#b8f2d8", "#f0fff8", "#7bd88f"],
-    sunset: ["#ff9a76", "#ffe0a3", "#b07acb"],
-    night:  ["#1f1b4d", "#4a3f8f", "#2f2a66"],
+    glam:     ["#4d2aa8", "#e08cf0", "#c06ad8"],
+    confetti: ["#ffb3e3", "#fff3fb", "#ff8fd0"],
+    city:     ["#0d0f2b", "#4b3a8f", "#1a1a38"],
+    sky:      ["#9be0ff", "#e8f9ff", "#7bd88f"],
+    candy:    ["#ffc2e2", "#fff0f8", "#ffa6d0"],
+    mint:     ["#b8f2d8", "#f0fff8", "#7bd88f"],
+    sunset:   ["#ff9a76", "#ffe0a3", "#b07acb"],
+    night:    ["#1f1b4d", "#4a3f8f", "#2f2a66"],
   }[kind];
   let extra = "";
   if (kind === "night") {
@@ -271,9 +304,37 @@ function scene(kind, uid) {
     for (const [x, y] of [[40,350],[250,360],[80,380],[220,390]])
       extra += `<circle cx="${x}" cy="${y}" r="9" fill="#ff8fc4"/><circle cx="${x}" cy="${y}" r="4" fill="#ffe66d"/>`;
   } else if (kind === "glam") {
-    extra += `<polygon points="40,0 95,0 175,510 -35,510" fill="#fff" opacity=".07"/><polygon points="205,0 265,0 345,510 140,510" fill="#fff" opacity=".07"/>`;
+    // two spotlights that sweep back and forth
+    [[65, "55,0 75,0 165,510 -35,510", 7, 0], [235, "225,0 245,0 335,510 135,510", 9, 3]].forEach(([ax, pts, d, off]) => {
+      extra += animated
+        ? `<polygon class="beam" style="transform-origin:${ax}px 0px;${animStyle(d, off)}" points="${pts}" fill="#fff" opacity=".08"/>`
+        : `<polygon points="${pts}" fill="#fff" opacity=".07"/>`;
+    });
     for (const [x, y, r] of [[40,60,10],[250,40,8],[270,170,12],[30,200,7],[60,330,11],[255,320,9],[130,30,6],[200,120,5],[20,430,8],[280,440,10],[100,170,5],[220,250,6]])
       extra += `<path d="${star4(x, y, r)}" fill="#fff" opacity=".85"/>`;
+  } else if (kind === "confetti") {
+    const r = rng(7), cols = ["#ff5fa2", "#ffd23f", "#3fb6ff", "#4ecb8d", "#b55fe0", "#ff8a3d", "#ffffff"];
+    for (let i = 0; i < 46; i++) {
+      const x = (r() * 300).toFixed(1), y0 = (r() * 510).toFixed(1), w = (4 + r() * 5).toFixed(1), h = (7 + r() * 8).toFixed(1);
+      const col = cols[i % cols.length], d = 5 + r() * 5, rot = Math.round(r() * 360);
+      extra += animated
+        ? `<rect class="conf" x="${x}" y="-20" width="${w}" height="${h}" fill="${col}" style="${animStyle(d, r() * d)}"/>`
+        : `<rect x="${x}" y="${y0}" width="${w}" height="${h}" fill="${col}" transform="rotate(${rot} ${x} ${y0})"/>`;
+    }
+  } else if (kind === "city") {
+    const r = rng(11), tones = ["#171a3d", "#1d2150", "#14173a", "#222659"];
+    extra += `<circle cx="238" cy="62" r="20" fill="#fff6c8"/><circle cx="246" cy="57" r="18" fill="#3a2f7a" opacity=".55"/>`;
+    for (const [x, y] of [[40,50],[90,100],[150,40],[200,120],[20,150],[270,130]]) extra += `<path d="${star4(x, y, 4)}" fill="#fff" opacity=".8"/>`;
+    for (let x = -8; x < 300;) {
+      const w = 28 + r() * 26, h = 120 + r() * 190, y = 482 - h;
+      extra += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${tones[Math.floor(r() * tones.length)]}"/>`;
+      for (let i = 0; i < Math.floor((w - 8) / 9); i++) for (let j = 0; j < Math.floor((h - 16) / 13); j++) {
+        if (r() > .5) continue;
+        const twinkle = r() < .22, d = 2 + r() * 3, wx = (x + 4 + i * 9).toFixed(1), wy = (y + 8 + j * 13).toFixed(1);
+        extra += `<rect ${animated && twinkle ? `class="win" style="${animStyle(d, r() * d)}"` : ""} x="${wx}" y="${wy}" width="5" height="7" fill="#ffd86b"/>`;
+      }
+      x += w + 3;
+    }
   } else if (kind === "sunset") {
     extra += `<circle cx="150" cy="330" r="60" fill="#ffd36e" opacity=".8"/>`;
   }
@@ -330,40 +391,65 @@ const lighter = (h, t) => mix(h, "#ffffff", t);
 
 function body(skin) {
   const sh = darker(skin, .14);
-  const limb = (d, w) => `<path d="${d}" fill="none" stroke="rgba(0,0,0,.2)" stroke-width="${w + 2}" stroke-linecap="round"/>
-                          <path d="${d}" fill="none" stroke="${skin}" stroke-width="${w}" stroke-linecap="round"/>`;
+  const limb = (pts, w) => `<path d="${cub(pts)}" fill="none" stroke="rgba(0,0,0,.2)" stroke-width="${w + 2}" stroke-linecap="round"/>
+                            <path d="${cub(pts)}" fill="none" stroke="${skin}" stroke-width="${w}" stroke-linecap="round"/>`;
+  const rightHand = hand(1, POSE.R, skin);
   return `
     <path d="M122 298 L146 298 Q147 360 142 428 L128 428 Q122 360 122 298Z" fill="${skin}" ${OUT}/>
     <path d="M154 298 L178 298 Q178 360 172 428 L158 428 Q153 360 154 298Z" fill="${skin}" ${OUT}/>
     <path d="M144 310 Q145 365 141 424 M156 310 Q155 365 159 424" fill="none" stroke="${sh}" stroke-width="3" stroke-linecap="round" opacity=".6"/>
-    ${limb("M109 190 Q98 240 97 284", 15)}
-    ${limb("M191 190 Q202 240 203 284", 15)}
-    <ellipse cx="97" cy="294" rx="8" ry="11" fill="${skin}" ${OUT}/><ellipse cx="203" cy="294" rx="8" ry="11" fill="${skin}" ${OUT}/>
+    ${limb(POSE.L, 15)}
+    ${limb(POSE.R, 15)}
+    ${hand(-1, POSE.L, skin)}
+    ${POSE.wave && ANIMATED ? `<g class="wavehand" style="transform-origin:${POSE.R[3][0]}px ${POSE.R[3][1]}px">${rightHand}</g>` : rightHand}
     <path d="M140 148 L160 148 L162 184 Q150 192 138 184Z" fill="${skin}"/>
     <path d="M140 148 L160 148 L160 168 Q150 176 140 168Z" fill="${sh}" opacity=".7"/>
     <path d="${curve(edge(178, 300, -1, -1), "M")} ${curve(mirror(edge(178, 300, -1, -1)), "L")}Z" fill="${skin}"/>`;
 }
 
-function face(skin, hair) {
+function face(skin, hair, o) {
   const sh = darker(skin, .18);
   const brow = darker(hair, .25);
+  const lc = o.lipColor;
   const eye = x => `
     <ellipse cx="${x}" cy="114" rx="8.5" ry="5.5" fill="#fff" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
-    <circle cx="${x}" cy="114" r="4.6" fill="#5b3a29"/><circle cx="${x}" cy="114" r="2.1" fill="#1b1212"/>
+    <circle cx="${x}" cy="114" r="4.6" fill="${o.eyeColor}"/><circle cx="${x}" cy="114" r="2.1" fill="${darker(o.eyeColor, .75)}"/>
     <circle cx="${x + 1.6}" cy="112.4" r="1.4" fill="#fff"/>`;
+  const shadow = o.shadow === "none" ? "" :
+    `<ellipse cx="132" cy="108" rx="11" ry="5.5" fill="${o.shadow}" opacity=".5"/><ellipse cx="168" cy="108" rx="11" ry="5.5" fill="${o.shadow}" opacity=".5"/>`;
+  const lid = 'M122 113 Q132 106 142 113 M158 113 Q168 106 178 113';
+  const lashes = {
+    natural: `<path d="${lid}" fill="none" stroke="#2b2b3a" stroke-width="2.4" stroke-linecap="round"/><path d="M122 113 L119 110 M178 113 L181 110" stroke="#2b2b3a" stroke-width="2" stroke-linecap="round"/>`,
+    long:    `<path d="${lid}" fill="none" stroke="#2b2b3a" stroke-width="2.8" stroke-linecap="round"/>
+              <path d="M122 113 L117.5 108.5 M125 110.4 L121.5 105.5 M129 108.3 L127 103 M178 113 L182.5 108.5 M175 110.4 L178.5 105.5 M171 108.3 L173 103" stroke="#2b2b3a" stroke-width="1.8" stroke-linecap="round"/>`,
+    wing:    `<path d="${lid}" fill="none" stroke="#1b1b28" stroke-width="3.2" stroke-linecap="round"/><path d="M122 113 L114 107 M178 113 L186 107" stroke="#1b1b28" stroke-width="2.6" stroke-linecap="round"/>`,
+    none:    `<path d="${lid}" fill="none" stroke="#2b2b3a" stroke-width="1.1" opacity=".55" stroke-linecap="round"/>`,
+  }[o.lashes];
+  const brows = {
+    soft:   ['M122 101 Q132 94 143 99 M157 99 Q168 94 178 101', 3],
+    thick:  ['M122 101 Q132 94 143 99 M157 99 Q168 94 178 101', 5.4],
+    thin:   ['M122 101 Q132 94 143 99 M157 99 Q168 94 178 101', 1.8],
+    arched: ['M121 102 Q131 89 143 98 M157 98 Q169 89 179 102', 2.6],
+  }[o.brows];
+  const mouth = {
+    smile: `<path d="M139 143 Q144.5 140.5 150 142.5 Q155.5 140.5 161 143 Q150 154 139 143Z" fill="${lc}" stroke="${darker(lc, .2)}" stroke-width=".8" stroke-linejoin="round"/>
+            <path d="M144 145.6 Q150 150 156 145.6" fill="none" stroke="${lighter(lc, .55)}" stroke-width="1.4" stroke-linecap="round" opacity=".75"/>`,
+    grin:  `<path d="M137 141 Q150 144 163 141 Q159 157 150 157 Q141 157 137 141Z" fill="#7a1f2f"/>
+            <path d="M139.5 142.6 Q150 145.6 160.5 142.6 Q158 148.4 150 148.4 Q142 148.4 139.5 142.6Z" fill="#fff"/>
+            <path d="M137 141 Q150 144 163 141 M141 154.5 Q150 160 159 154.5" fill="none" stroke="${lc}" stroke-width="3" stroke-linecap="round"/>`,
+    pout:  `<path d="M143 144 Q146.5 141 150 143 Q153.5 141 157 144 Q154 153 150 153 Q146 153 143 144Z" fill="${lc}" stroke="${darker(lc, .2)}" stroke-width=".8" stroke-linejoin="round"/>
+            <path d="M146.5 146 Q150 149.5 153.5 146" fill="none" stroke="${lighter(lc, .55)}" stroke-width="1.3" stroke-linecap="round" opacity=".75"/>`,
+  }[o.mouth];
   return `
     <ellipse cx="103" cy="118" rx="6" ry="9" fill="${skin}" ${OUT}/><ellipse cx="197" cy="118" rx="6" ry="9" fill="${skin}" ${OUT}/>
     <path d="M104 108 Q104 56 150 56 Q196 56 196 108 Q196 150 150 164 Q104 150 104 108Z" fill="${skin}" ${OUT}/>
     <g class="eyes" style="animation-delay:-${(performance.now() / 1000 % 4).toFixed(2)}s">
-      ${eye(132)}${eye(168)}
-      <path d="M122 113 Q132 106 142 113 M158 113 Q168 106 178 113" fill="none" stroke="#2b2b3a" stroke-width="2.4" stroke-linecap="round"/>
-      <path d="M122 113 L119 110 M178 113 L181 110" stroke="#2b2b3a" stroke-width="2" stroke-linecap="round"/>
+      ${shadow}${eye(132)}${eye(168)}${lashes}
     </g>
-    <path d="M122 101 Q132 94 143 99 M157 99 Q168 94 178 101" fill="none" stroke="${brow}" stroke-width="3" stroke-linecap="round"/>
+    <path d="${brows[0]}" fill="none" stroke="${brow}" stroke-width="${brows[1]}" stroke-linecap="round"/>
     <path d="M150 120 Q146 131 151 133 M146 134 Q150 137 155 134" fill="none" stroke="${sh}" stroke-width="2" stroke-linecap="round" opacity=".8"/>
     <circle cx="121" cy="133" r="9" fill="#ff8fa3" opacity=".28"/><circle cx="179" cy="133" r="9" fill="#ff8fa3" opacity=".28"/>
-    <path d="M140 144 Q150 152 160 144" fill="none" stroke="#b5384f" stroke-width="2.8" stroke-linecap="round"/>
-    <path d="M145 148 Q150 152 155 148" fill="none" stroke="#e8798d" stroke-width="2" stroke-linecap="round"/>`;
+    ${mouth}`;
 }
 
 /* ---------- Clothes (cut to follow the body's curves) ---------- */
@@ -401,8 +487,50 @@ const sleeves = (c, d1, d2, w = 17) =>
    <path d="${d2}" fill="none" stroke="rgba(0,0,0,.2)" stroke-width="${w + 2}" stroke-linecap="round"/>
    <path d="${d1}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>
    <path d="${d2}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
-const LONG = ["M109 190 Q98 238 97 282", "M191 190 Q202 238 203 282"];
-const THREEQ = ["M109 190 Q99 228 98 264", "M191 190 Q201 228 202 264"];
+/* ---------- Poses: every arm is a cubic curve, sleeves and hands follow it ---------- */
+const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+function splitCubic(p, t) {
+  const [a, b, c, d] = p, ab = lerp(a, b, t), bc = lerp(b, c, t), cd = lerp(c, d, t);
+  const abc = lerp(ab, bc, t), bcd = lerp(bc, cd, t), m = lerp(abc, bcd, t);
+  return [[a, ab, abc, m], [m, bcd, cd, d]];
+}
+const subCubic = (p, t0, t1) => { const left = splitCubic(p, t1)[0]; return t0 <= 0 ? left : splitCubic(left, t0 / t1)[1]; };
+const cub = q => `M${fp(q[0])} C${fp(q[1])} ${fp(q[2])} ${fp(q[3])}`;
+const ARM_DOWN = [[109, 190], [101, 222], [98, 254], [97, 284]];
+const flipArm = a => a.map(([x, y]) => [300 - x, y]);
+const ARM_HIP_R = [[191, 190], [218, 214], [222, 248], [184, 266]];
+const POSES = {
+  stand:  { L: ARM_DOWN, R: flipArm(ARM_DOWN), tilt: 0 },
+  hip:    { L: ARM_DOWN, R: ARM_HIP_R, tilt: 3 },
+  power:  { L: flipArm(ARM_HIP_R), R: ARM_HIP_R, tilt: 0 },
+  wave:   { L: ARM_DOWN, R: [[191, 190], [224, 196], [246, 160], [238, 112]], tilt: -4, wave: true },
+  runway: { L: [[109, 190], [93, 218], [80, 248], [74, 280]], R: [[191, 190], [203, 222], [212, 252], [216, 282]], tilt: 2, walk: true },
+};
+let POSE = POSES.stand, ANIMATED = false;
+const armSeg = (side, t0, t1) => cub(subCubic(side < 0 ? POSE.L : POSE.R, t0, t1));
+
+function hand(side, arm, skin) {
+  const [c, d] = [arm[2], arm[3]], [x, y] = d;
+  const ang = Math.atan2(d[1] - c[1], d[0] - c[0]) * 180 / Math.PI - 90;
+  const th = side < 0 ? 1 : -1;                       // thumb points toward the body
+  const fingers = [[-4.5, 13], [-1.6, 15.5], [1.6, 15], [4.5, 12]]
+    .map(([dx, len]) => `M${x + dx} ${y + 11} L${x + dx * 1.15} ${y + 11 + len}`).join(" ");
+  const thumb = `M${x + th * 4.5} ${y + 6} L${x + th * 8.5} ${y + 15}`;
+  return `<g transform="rotate(${ang.toFixed(1)} ${x} ${y})">
+    <path d="${fingers}" stroke="rgba(0,0,0,.22)" stroke-width="4.8" stroke-linecap="round" fill="none"/>
+    <path d="${thumb}" stroke="rgba(0,0,0,.22)" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <path d="${fingers}" stroke="${skin}" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+    <path d="${thumb}" stroke="${skin}" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+    <ellipse cx="${x}" cy="${y + 7}" rx="6.8" ry="8.5" fill="${skin}" ${OUT}/>
+  </g>`;
+}
+function setPose(name, animated) {
+  POSE = POSES[name] || POSES.stand; ANIMATED = animated;
+  LONG[0] = armSeg(-1, 0, .97); LONG[1] = armSeg(1, 0, .97);
+  THREEQ[0] = armSeg(-1, 0, .78); THREEQ[1] = armSeg(1, 0, .78);
+}
+const LONG = ["", ""];
+const THREEQ = ["", ""];
 
 function bottomWear(style, c) {
   const dk = darker(c, .22);
@@ -486,7 +614,7 @@ function topWear(style, c) {
       let buttons = "";
       for (const y of [220, 238, 256, 274]) buttons += `<circle cx="150" cy="${y}" r="2" fill="${dk}"/>`;
       return sleeves(c, THREEQ[0], THREEQ[1]) +
-        `<path d="M99 256 Q98 264 98 270 M201 256 Q202 264 202 270" fill="none" stroke="${dk}" stroke-width="18"/>
+        `<path d="${armSeg(-1, .74, .84)} ${armSeg(1, .74, .84)}" fill="none" stroke="${dk}" stroke-width="18"/>
          <path d="${curve(L, "M")} ${curve(mirror(L), "L")} L168 178 L150 204 L132 178Z" fill="${c}" ${OUT}/>
          <path d="M132 178 L150 204 L126 198 L120 184Z M168 178 L150 204 L174 198 L180 184Z" fill="${lt}" ${OUT}/>
          <path d="M150 204 L150 286" stroke="${dk}" stroke-width="1.5" opacity=".5"/>${buttons}`;
@@ -534,7 +662,7 @@ function topWear(style, c) {
     }
     case "offshoulder": {
       const L = edge(198, 288, -1, 1.5);
-      return sleeves(c, "M105 205 Q98 238 98 266", "M195 205 Q202 238 202 266", 17) +
+      return sleeves(c, armSeg(-1, .16, .8), armSeg(1, .16, .8), 17) +
         `<path d="${curve(L, "M")} ${curve(mirror(L), "L")} L183 199 Q150 210 117 199Z" fill="${c}" ${OUT}/>
          <path d="M117 199 Q150 210 183 199" fill="none" stroke="${dk}" stroke-width="3" opacity=".5"/>`;
     }
@@ -551,7 +679,7 @@ function topWear(style, c) {
       const inner = edge(180, 290, -1, 0);
       const jl = edge(180, 258, -1, 4);
       return sleeves(c, LONG[0], LONG[1], 19) +
-        `<path d="M99 262 Q98 270 98 276 M201 262 Q202 270 202 276" fill="none" stroke="${dk}" stroke-width="20"/>
+        `<path d="${armSeg(-1, .78, .9)} ${armSeg(1, .78, .9)}" fill="none" stroke="${dk}" stroke-width="20"/>
          <path d="${curve(inner, "M")} ${curve(mirror(inner), "L")} L164 180 Q150 206 136 180Z" fill="#1f1f2b" ${OUT}/>
          <path d="${curve(jl, "M")} L148 258 L147 232 L138 204 L128 180Z" fill="${c}" ${OUT}/>
          <path d="${curve(flip(jl), "M")} L152 258 L153 232 L162 204 L172 180Z" fill="${c}" ${OUT}/>
@@ -781,25 +909,28 @@ function extraFront(list) {
   if (list.includes("necklace")) s += `<path d="M125 182 Q150 215 175 182" fill="none" stroke="#ffd23f" stroke-width="3"/><path d="${heartPath(150, 208, .7)}" fill="#ff5fa2"/>`;
   if (list.includes("scarf"))    s += `<rect x="124" y="170" width="52" height="16" rx="8" fill="#e63946" ${OUT}/><path d="M160 180 L176 230 L158 226Z" fill="#e63946" ${OUT}/>`;
   if (list.includes("choker"))   s += `<path d="M138 164 Q150 174 162 164" fill="none" stroke="#1f1f2b" stroke-width="3.5" stroke-linecap="round"/><circle cx="150" cy="172" r="2.8" fill="#e8c768"/>`;
-  if (list.includes("bracelet")) s += `<ellipse cx="97" cy="283" rx="8" ry="3" fill="none" stroke="#e8c768" stroke-width="3"/><ellipse cx="203" cy="283" rx="8" ry="3" fill="none" stroke="#e8c768" stroke-width="3"/>`;
+  const dL = [POSE.L[3][0] - 97, POSE.L[3][1] - 284], dR = [POSE.R[3][0] - 203, POSE.R[3][1] - 284];
+  const at = (d, inner) => `<g transform="translate(${d[0].toFixed(1)} ${d[1].toFixed(1)})">${inner}</g>`;
+  if (list.includes("bracelet")) s += at(dL, `<ellipse cx="97" cy="283" rx="8" ry="3" fill="none" stroke="#e8c768" stroke-width="3"/>`) + at(dR, `<ellipse cx="203" cy="283" rx="8" ry="3" fill="none" stroke="#e8c768" stroke-width="3"/>`);
   if (list.includes("belt"))     s += `<path d="${band(241, 252, 3)}" fill="#6b3f26" ${OUT}/><rect x="142" y="240" width="16" height="13" rx="2" fill="#e8c768" ${OUT}/>`;
-  if (list.includes("handbag"))  s += `<path d="M199 300 Q201 280 212 280 Q224 280 226 300" fill="none" stroke="#7a4426" stroke-width="3"/>
-                                       <rect x="192" y="298" width="42" height="32" rx="7" fill="#c9733d" ${OUT}/><rect x="208" y="306" width="10" height="7" rx="2" fill="#e8c768"/>`;
+  if (list.includes("handbag"))  s += at(dR, `<path d="M199 300 Q201 280 212 280 Q224 280 226 300" fill="none" stroke="#7a4426" stroke-width="3"/>
+                                       <rect x="192" y="298" width="42" height="32" rx="7" fill="#c9733d" ${OUT}/><rect x="208" y="306" width="10" height="7" rx="2" fill="#e8c768"/>`);
   if (list.includes("layers"))   s += `<path d="M133 168 Q150 212 167 168" fill="none" stroke="#e8c768" stroke-width="1.8"/><path d="M130 168 Q150 232 170 168" fill="none" stroke="#c8c8d8" stroke-width="1.8"/><path d="M127 168 Q150 252 173 168" fill="none" stroke="#e8c768" stroke-width="1.8"/><circle cx="150" cy="240" r="3.5" fill="#ff5fa2"/>`;
-  if (list.includes("bangles"))  s += [0, 5, 10].map(d => `<ellipse cx="97" cy="${274 + d}" rx="8.5" ry="2.6" fill="none" stroke="#e8c768" stroke-width="2.4"/>`).join("") + `<ellipse cx="203" cy="282" rx="8.5" ry="2.6" fill="none" stroke="#e8c768" stroke-width="2.4"/>`;
-  if (list.includes("clutch"))   s += `<rect x="76" y="298" width="36" height="21" rx="3" fill="#c1121f" ${OUT}/><path d="M80 304 L108 304 M80 310 L108 310 M88 299 L88 318 M98 299 L98 318" stroke="#8a0d17" stroke-width="1"/><circle cx="94" cy="299" r="2.5" fill="#e8c768"/>`;
+  if (list.includes("bangles"))  s += at(dL, [0, 5, 10].map(d => `<ellipse cx="97" cy="${274 + d}" rx="8.5" ry="2.6" fill="none" stroke="#e8c768" stroke-width="2.4"/>`).join("")) + at(dR, `<ellipse cx="203" cy="282" rx="8.5" ry="2.6" fill="none" stroke="#e8c768" stroke-width="2.4"/>`);
+  if (list.includes("clutch"))   s += at(dL, `<rect x="76" y="298" width="36" height="21" rx="3" fill="#c1121f" ${OUT}/><path d="M80 304 L108 304 M80 310 L108 310 M88 299 L88 318 M98 299 L98 318" stroke="#8a0d17" stroke-width="1"/><circle cx="94" cy="299" r="2.5" fill="#e8c768"/>`);
   if (list.includes("crossbody")) s += `<path d="M181 182 Q150 250 120 296" fill="none" stroke="#7a4426" stroke-width="3"/><rect x="104" y="292" width="32" height="22" rx="5" fill="#5ec8e0" ${OUT}/><rect x="114" y="297" width="12" height="6" rx="2" fill="#e8c768"/>`;
-  if (list.includes("wand"))     s += `<line x1="206" y1="290" x2="236" y2="222" stroke="#b07acb" stroke-width="5" stroke-linecap="round"/>
+  if (list.includes("wand"))     s += at(dR, `<line x1="206" y1="290" x2="236" y2="222" stroke="#b07acb" stroke-width="5" stroke-linecap="round"/>
                                        <polygon points="${starPoints(240, 210, 18, 8)}" fill="#ffd23f" stroke="#e0a800" stroke-width="2"/>
-                                       <circle cx="206" cy="290" r="10" fill="rgba(0,0,0,0)"/>`;
+                                       <circle cx="206" cy="290" r="10" fill="rgba(0,0,0,0)"/>`);
   return s;
 }
 
 /* ---------- Render ---------- */
-const HEAD = 'transform="translate(150 172) scale(.86) translate(-150 -178)"';
+const headT = () => `transform="translate(150 172) rotate(${POSE.tilt}) scale(.86) translate(-150 -178)"`;
 const STRETCH = 'transform="translate(150 20) scale(.94 1.1) translate(-150 -20)"';
 
 function buildSvg(s, { uid = "main", animated = false } = {}) {
+  setPose(s.pose, animated);
   const hasDress = s.dress !== "none";
   const bobDelay = (performance.now() / 1000 % 3).toFixed(2);
   const clothes = hasDress ? dressWear(s.dress, s.dressColor) : bottomWear(s.bottom, s.bottomColor) + topWear(s.top, s.topColor);
@@ -815,16 +946,16 @@ function buildSvg(s, { uid = "main", animated = false } = {}) {
         <g filter="url(#white-${uid})"><use href="#clothes-${uid}"/></g>
       </mask>
     </defs>
-    ${scene(s.scene, uid)}
-    <g class="${animated ? "bob" : ""}" style="animation-delay:-${bobDelay}s"><g ${STRETCH}><g class="char">
+    ${scene(s.scene, uid, animated)}
+    <g class="${animated ? (POSE.walk ? "walk" : "bob") : ""}" style="animation-delay:-${bobDelay}s"><g ${STRETCH}><g class="char">
     ${extraBack(s.extras)}
-    <g ${HEAD}>${hairBack(s.hair, s.hairColor)}</g>
+    <g ${headT()}>${hairBack(s.hair, s.hairColor)}</g>
     ${body(s.skin)}
     <g id="clothes-${uid}">${clothes}</g>
     <rect x="0" y="0" width="300" height="510" fill="url(#sheen-${uid})" mask="url(#cm-${uid})"/>
     ${shoeWear(s.shoes, s.shoeColor)}
-    <g ${HEAD}>
-      ${face(s.skin, s.hairColor)}
+    <g ${headT()}>
+      ${face(s.skin, s.hairColor, s)}
       ${hairFront(s.hair, s.hairColor)}
       ${glassesWear(s.glasses, s.glassColor)}
       ${hatWear(s.hat, s.hatColor)}
@@ -962,7 +1093,7 @@ function renderTabs() {
     b.setAttribute("role", "tab");
     b.setAttribute("aria-selected", cat.id === currentTab);
     b.onclick = () => { currentTab = cat.id; sfx.pick(); renderTabs(); renderOptions(); };
-    (i < 5 ? left : right).appendChild(b);
+    (i < 6 ? left : right).appendChild(b);
   });
 }
 
@@ -972,6 +1103,38 @@ function renderOptions() {
   box.innerHTML = "";
 
   if (cat.special === "saved") return renderSaved(box);
+
+  if (cat.sections) {
+    for (const sec of cat.sections) {
+      const h = document.createElement("h2");
+      h.textContent = sec.title;
+      box.appendChild(h);
+      const wrap = document.createElement("div");
+      if (sec.options) {
+        wrap.className = "styles";
+        for (const [value, label] of sec.options) {
+          const b = document.createElement("button");
+          b.textContent = label;
+          b.setAttribute("aria-pressed", state[sec.key] === value);
+          b.onclick = () => { state[sec.key] = value; render(); acted(2); };
+          wrap.appendChild(b);
+        }
+      } else {
+        wrap.className = "swatches";
+        for (const color of sec.colors) {
+          const b = document.createElement("button");
+          b.className = "swatch";
+          if (color === "none") { b.textContent = "✕"; b.style.background = "#fff"; b.setAttribute("aria-label", "None"); }
+          else { b.style.background = color; b.setAttribute("aria-label", "Color " + color); }
+          b.setAttribute("aria-pressed", state[sec.key] === color);
+          b.onclick = () => { state[sec.key] = color; render(); sfx.color(); sparkle(2); };
+          wrap.appendChild(b);
+        }
+      }
+      box.appendChild(wrap);
+    }
+    return;
+  }
 
   if (cat.styles) {
     const h = document.createElement("h2");
@@ -1028,10 +1191,11 @@ function renderOptions() {
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 
 document.getElementById("random").onclick = () => {
-  const next = { extras: [] };
+  const next = { ...structuredClone(DEFAULTS), extras: [] };
   for (const cat of CATS) {
     if (cat.styleKey) next[cat.styleKey] = pick(cat.styles)[0];
     if (cat.colorKey) next[cat.colorKey] = pick(cat.colors);
+    if (cat.sections) for (const sec of cat.sections) next[sec.key] = pick(sec.options ? sec.options.map(o => o[0]) : sec.colors);
   }
   for (const e of CATS.find(c => c.multi).styles) if (Math.random() < 0.3) next.extras.push(e[0]);
   if (Math.random() < 0.6) next.glasses = "none";
