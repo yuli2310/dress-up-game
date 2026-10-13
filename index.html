@@ -6,78 +6,114 @@
 <title>Dress-Up Star</title>
 <style>
   :root {
-    --bg: #fff4fa;
-    --card: #ffffff;
     --ink: #3b2a4d;
-    --accent: #ff5fa2;
-    --accent-2: #7b61ff;
-    --line: #f0d9ea;
+    --pink-1: #ff7ac0;
+    --pink-2: #ff3d9a;
+    --pink-edge: #c01f74;
+    --gold-1: #ffd54f;
+    --gold-2: #ff9f1c;
+    --line: #f3c9e6;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: "Comic Sans MS", "Trebuchet MS", system-ui, sans-serif;
-    background: var(--bg);
+    font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
     color: var(--ink);
     min-height: 100vh;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255, 255, 255, .25) 0, transparent 35%),
+      radial-gradient(circle at 85% 35%, rgba(255, 143, 216, .45) 0, transparent 40%),
+      linear-gradient(160deg, #4b2aa8 0%, #8a4fd6 50%, #d37be0 100%);
+    background-attachment: fixed;
   }
-  header { text-align: center; padding: 16px 16px 4px; }
-  h1 { margin: 0; font-size: clamp(1.6rem, 4vw, 2.4rem); color: var(--accent); }
-  header p { margin: 4px 0 0; font-size: 1rem; }
+  header { text-align: center; padding: 14px 16px 0; color: #fff; }
+  h1 { margin: 0; font-size: clamp(1.7rem, 4vw, 2.5rem); letter-spacing: .5px; text-shadow: 0 0 14px #ff8fd8, 0 3px 0 #7a2aa8; }
+  header p { margin: 2px 0 0; opacity: .9; }
 
   main {
     display: grid;
-    grid-template-columns: minmax(280px, 420px) minmax(300px, 520px);
+    grid-template-columns: auto minmax(320px, 440px);
     gap: 20px;
     justify-content: center;
-    padding: 16px;
-    max-width: 1000px;
+    align-items: start;
+    padding: 12px 16px 28px;
+    max-width: 1280px;
     margin: 0 auto;
   }
-  @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+  @media (max-width: 1180px) { main { grid-template-columns: 1fr; justify-items: center; } }
 
-  .stage, .panel {
-    background: var(--card);
-    border: 3px solid var(--line);
-    border-radius: 24px;
-    padding: 12px;
-    box-shadow: 0 6px 0 var(--line);
+  /* character + side icon columns */
+  .dock { display: grid; grid-template-columns: 96px minmax(260px, min(420px, calc(72vh * 300 / 510))) 96px; gap: 14px; align-items: start; }
+  @media (max-width: 700px) {
+    .dock { grid-template-columns: 1fr; justify-items: center; }
+    .dock .stage { order: 1; } .icons.left { order: 2; } .icons.right { order: 3; }
+    .icons { flex-direction: row !important; flex-wrap: wrap; justify-content: center; }
   }
-  #stage svg { width: 100%; height: auto; display: block; border-radius: 16px; }
+  .icons { display: flex; flex-direction: column; gap: 12px; padding-top: 6px; }
+
+  .icon {
+    width: 88px; height: 88px; padding: 6px 2px 4px;
+    border-radius: 22px; border: 3px solid #fff;
+    background: linear-gradient(var(--pink-1), var(--pink-2));
+    color: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    box-shadow: inset 0 3px 6px rgba(255, 255, 255, .55), 0 5px 0 var(--pink-edge), 0 8px 14px rgba(0, 0, 0, .25);
+  }
+  .icon .ico { font-size: 2rem; line-height: 1; filter: brightness(0) invert(1) drop-shadow(0 1px 1px rgba(0, 0, 0, .25)); }
+  .icon .lbl { font-size: .72rem; font-weight: bold; text-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
+  .icon[aria-selected="true"] {
+    background: linear-gradient(var(--gold-1), var(--gold-2));
+    box-shadow: inset 0 3px 6px rgba(255, 255, 255, .7), 0 5px 0 #b8660a, 0 0 18px #ffe58a;
+    transform: scale(1.06);
+  }
+
+  .stage { background: transparent; border: none; box-shadow: none; padding: 0; width: 100%; }
+  .stagewrap {
+    position: relative; overflow: hidden; border-radius: 26px; display: flex; justify-content: center;
+    border: 4px solid #fff; box-shadow: 0 0 0 3px #ff8fd8, 0 12px 30px rgba(40, 0, 80, .45);
+  }
+  #stage { width: 100%; }
+  #stage svg { display: block; width: 100%; height: auto; }
   .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .actions button { flex: 1 1 40%; font-weight: bold; }
 
   button {
-    font: inherit;
-    color: var(--ink);
-    cursor: pointer;
-    border: 3px solid var(--line);
-    background: #fff;
-    border-radius: 16px;
-    padding: 8px 12px;
+    font: inherit; color: var(--ink); cursor: pointer;
+    border: 3px solid #fff;
+    background: linear-gradient(#fff, #ffe3f3);
+    border-radius: 16px; padding: 8px 12px;
+    box-shadow: 0 3px 0 #d9a3c8;
     transition: transform .08s;
   }
   button:hover { transform: translateY(-2px); }
-  button:focus-visible { outline: 3px solid var(--accent-2); outline-offset: 2px; }
-  .actions button { flex: 1; font-weight: bold; }
-  .primary { background: var(--accent); border-color: #e0407f; color: #fff; }
-  .secondary { background: var(--accent-2); border-color: #5b43d6; color: #fff; }
-
-  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-  .tabs button { padding: 6px 10px; font-size: .95rem; }
-  .tabs button[aria-selected="true"] { background: var(--accent-2); border-color: #5b43d6; color: #fff; }
-
-  h2 { font-size: 1.05rem; margin: 10px 0 6px; }
-  .styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
-  .styles button { font-size: .95rem; padding: 10px 6px; }
-  .styles button[aria-pressed="true"] { background: #ffe3f0; border-color: var(--accent); }
-
-  .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
-  .swatch {
-    width: 40px; height: 40px; padding: 0; border-radius: 50%;
-    border: 3px solid #fff; box-shadow: 0 0 0 2px var(--line);
+  button:active { transform: translateY(1px); }
+  button:focus-visible { outline: 3px solid #ffe58a; outline-offset: 2px; }
+  .primary, .secondary {
+    color: #fff; background: linear-gradient(var(--pink-1), var(--pink-2)); box-shadow: 0 3px 0 var(--pink-edge);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .3);
   }
-  .swatch[aria-pressed="true"] { box-shadow: 0 0 0 4px var(--accent-2); }
+  .secondary { background: linear-gradient(#a98bff, #7b61ff); box-shadow: 0 3px 0 #5139c4; }
+
+  /* options panel */
+  .panel {
+    background: rgba(255, 255, 255, .93);
+    border: 4px solid #fff; border-radius: 26px; padding: 14px 16px 18px;
+    box-shadow: 0 0 0 3px #ff8fd8, 0 12px 30px rgba(40, 0, 80, .4);
+    width: 100%; max-width: 560px;
+    position: sticky; top: 12px;
+  }
+  .panel h2 { font-size: 1.1rem; margin: 10px 0 8px; color: #c01f74; }
+  .styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
+  .styles button { font-size: .92rem; padding: 10px 6px; }
+  .styles button[aria-pressed="true"] {
+    color: #fff; background: linear-gradient(var(--pink-1), var(--pink-2)); box-shadow: 0 3px 0 var(--pink-edge);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .3);
+  }
+  .swatches { display: flex; flex-wrap: wrap; gap: 9px; }
+  .swatch { width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #e6b9d8, 0 3px 0 #d9a3c8; }
+  .swatch[aria-pressed="true"] { box-shadow: 0 0 0 4px #ff3d9a, 0 3px 0 #c01f74; }
   .hint { font-size: .9rem; opacity: .8; margin: 8px 0 0; }
+  .big { width: 100%; font-weight: bold; margin-top: 8px; }
 
   /* animations */
   .bob { animation: bob 3s ease-in-out infinite; }
@@ -86,17 +122,13 @@
   @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
   @keyframes twirl { 0% { transform: scaleX(1); } 25% { transform: scaleX(0); } 50% { transform: scaleX(-1); } 75% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
   @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
-  .stagewrap { position: relative; overflow: hidden; border-radius: 16px; }
   .sparkle { position: absolute; pointer-events: none; font-size: 1.6rem; animation: floatUp 1s ease-out forwards; }
   @keyframes floatUp { from { opacity: 1; transform: translateY(0) scale(.6); } to { opacity: 0; transform: translateY(-70px) scale(1.3); } }
-  @media (prefers-reduced-motion: reduce) {
-    .bob, .eyes, .char.twirl { animation: none; }
-  }
+  @media (prefers-reduced-motion: reduce) { .bob, .eyes, .char.twirl { animation: none; } }
 
   /* saved outfits */
-  .big { width: 100%; font-weight: bold; margin-top: 8px; }
   .saved-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
-  .saved-item { border: 3px solid var(--line); border-radius: 16px; padding: 6px; text-align: center; }
+  .saved-item { border: 3px solid var(--line); border-radius: 16px; padding: 6px; text-align: center; background: #fff; }
   .saved-item svg { width: 100%; height: auto; border-radius: 10px; display: block; }
   .saved-item .row { display: flex; gap: 4px; margin-top: 4px; }
   .saved-item button { flex: 1; padding: 4px; font-size: .85rem; }
@@ -109,23 +141,23 @@
 </header>
 
 <main>
-  <section class="stage">
-    <div class="stagewrap" id="wrap"><div id="stage" aria-label="Your character"></div></div>
-    <div class="actions">
-      <button class="primary" id="random">🎲 Surprise me!</button>
-      <button id="twirl">💃 Twirl</button>
-      <button id="mute" aria-pressed="false">🔊 Sound on</button>
-    </div>
-    <div class="actions">
-      <button class="secondary" id="save">📷 Save picture</button>
-      <button id="reset">↩️ Start over</button>
-    </div>
-  </section>
+  <div class="dock">
+    <nav class="icons left" id="iconsL" aria-label="Categories"></nav>
+    <section class="stage">
+      <div class="stagewrap" id="wrap"><div id="stage" aria-label="Your character"></div></div>
+      <div class="actions">
+        <button class="primary" id="random">🎲 Surprise me!</button>
+        <button id="twirl">💃 Twirl</button>
+        <button class="secondary" id="outfits">⭐ My outfits</button>
+        <button id="mute" aria-pressed="false">🔊 Sound on</button>
+        <button class="secondary" id="save">📷 Save picture</button>
+        <button id="reset">↩️ Start over</button>
+      </div>
+    </section>
+    <nav class="icons right" id="iconsR" aria-label="More categories"></nav>
+  </div>
 
-  <section class="panel">
-    <div class="tabs" role="tablist" id="tabs"></div>
-    <div id="options"></div>
-  </section>
+  <section class="panel" id="options"></section>
 </main>
 
 <script>
@@ -148,32 +180,32 @@ const CATS = [
   { id: "top",     label: "👚 Top",     styleKey: "top", colorKey: "topColor", colors: CLOTH, styles: [
       ["tee", "Fitted tee"], ["blouse", "Silk blouse"], ["wrap", "Wrap top"], ["turtle", "Turtleneck"],
       ["blazer", "Blazer"], ["tank", "Camisole"], ["hoodie", "Hoodie"], ["stripes", "Striped tee"],
-      ["offshoulder", "Off-shoulder"], ["cardigan", "Cardigan"], ["crop", "Crop top"] ] },
+      ["offshoulder", "Off-shoulder"], ["cardigan", "Cardigan"], ["crop", "Crop top"], ["jacket", "Cropped jacket"] ] },
   { id: "bottom",  label: "👖 Bottom",  styleKey: "bottom", colorKey: "bottomColor", colors: CLOTH, styles: [
       ["pencil", "Pencil skirt"], ["midi", "Pleated midi"], ["mini", "Mini skirt"], ["maxi", "Maxi skirt"],
       ["wide", "Wide-leg pants"], ["jeans", "Slim jeans"], ["leggings", "Leggings"],
-      ["culottes", "Culottes"], ["shorts", "Tailored shorts"] ] },
+      ["culottes", "Culottes"], ["tulle", "Tulle skirt"], ["shorts", "Tailored shorts"] ] },
   { id: "dress",   label: "👗 Dress",   styleKey: "dress", colorKey: "dressColor", colors: CLOTH, styles: [
       ["none", "No dress"], ["wrap", "Wrap dress"], ["cocktail", "Cocktail dress"], ["shirt", "Shirt dress"],
-      ["skater", "Skater dress"], ["sun", "Sundress"], ["maxi", "Boho maxi"], ["gown", "Evening gown"] ],
+      ["ruffle", "Ruffle dress"], ["skater", "Skater dress"], ["sun", "Sundress"], ["maxi", "Boho maxi"], ["gown", "Evening gown"] ],
       hint: "A dress replaces the top and bottom." },
-  { id: "shoes",   label: "👟 Shoes",   styleKey: "shoes", colorKey: "shoeColor", colors: SHOE, styles: [
+  { id: "shoes",   label: "👠 Shoes",   styleKey: "shoes", colorKey: "shoeColor", colors: SHOE, styles: [
       ["sneakers", "Sneakers"], ["boots", "Boots"], ["sandals", "Sandals"], ["heels", "High heels"],
-      ["flats", "Ballet flats"], ["maryjane", "Mary Janes"] ] },
+      ["flats", "Ballet flats"], ["maryjane", "Mary Janes"], ["booties", "Ankle boots"] ] },
   { id: "glasses", label: "👓 Glasses", styleKey: "glasses", colorKey: "glassColor", colors: GLASS, styles: [
       ["none", "None"], ["round", "Round"], ["square", "Square"], ["oval", "Oval"], ["cateye", "Cat-eye"],
       ["aviator", "Aviator"], ["thick", "Bold frames"], ["heart", "Hearts"], ["star", "Stars"], ["sun", "Sunglasses"] ] },
-  { id: "hat",     label: "👑 Hats",    styleKey: "hat", colorKey: "hatColor", colors: CLOTH, styles: [
+  { id: "hat",     label: "👒 Hats",    styleKey: "hat", colorKey: "hatColor", colors: CLOTH, styles: [
       ["none", "None"], ["beanie", "Beanie"], ["fedora", "Fedora"], ["beret", "Beret"], ["cap", "Cap"],
       ["headband", "Headband"], ["flowers", "Flower crown"], ["crown", "Crown"], ["bow", "Big bow"],
       ["sunhat", "Sun hat"], ["ears", "Cat ears"] ] },
-  { id: "extras",  label: "💎 Extras",  multi: true, styles: [
+  { id: "extras",  label: "👜 Extras",  multi: true, styles: [
       ["necklace", "Necklace"], ["choker", "Choker"], ["earrings", "Earrings"], ["hoops", "Hoop earrings"],
-      ["bracelet", "Bracelets"], ["belt", "Belt"], ["scarf", "Scarf"], ["handbag", "Handbag"],
+      ["bracelet", "Bracelets"], ["belt", "Belt"], ["scarf", "Scarf"], ["handbag", "Handbag"], ["clutch", "Clutch"], ["crossbody", "Crossbody bag"], ["bangles", "Gold bangles"], ["layers", "Layered chains"],
       ["clip", "Hair clip"], ["wand", "Magic wand"], ["wings", "Fairy wings"], ["sticker", "Star sticker"] ],
       hint: "You can pick as many as you like!" },
-  { id: "scene",   label: "🌈 Scene",   styleKey: "scene", styles: [
-      ["sky", "Sunny sky"], ["candy", "Candy pink"], ["mint", "Mint garden"],
+  { id: "scene",   label: "✨ Scene",   styleKey: "scene", styles: [
+      ["glam", "Glam stage"], ["sky", "Sunny sky"], ["candy", "Candy pink"], ["mint", "Mint garden"],
       ["sunset", "Sunset"], ["night", "Starry night"] ] },
   { id: "saved",   label: "⭐ My outfits",   special: "saved" },
 ];
@@ -188,7 +220,7 @@ const DEFAULTS = {
   glasses: "none", glassColor: GLASS[0],
   hat: "none", hatColor: CLOTH[7],
   extras: [],
-  scene: "sky",
+  scene: "glam",
 };
 
 let state = structuredClone(DEFAULTS);
@@ -200,6 +232,9 @@ const OUT = 'stroke="rgba(0,0,0,.2)" stroke-width="2" stroke-linejoin="round"';
 function heartPath(cx, cy, s) {
   return `M${cx} ${cy + 10*s} C${cx - 18*s} ${cy - 2*s} ${cx - 8*s} ${cy - 14*s} ${cx} ${cy - 5*s} ` +
          `C${cx + 8*s} ${cy - 14*s} ${cx + 18*s} ${cy - 2*s} ${cx} ${cy + 10*s}Z`;
+}
+function star4(cx, cy, r) {
+  return `M${cx} ${cy - r} Q${cx} ${cy} ${cx + r} ${cy} Q${cx} ${cy} ${cx} ${cy + r} Q${cx} ${cy} ${cx - r} ${cy} Q${cx} ${cy} ${cx} ${cy - r}Z`;
 }
 function starPoints(cx, cy, R, r) {
   const pts = [];
@@ -214,6 +249,7 @@ function starPoints(cx, cy, R, r) {
 /* ---------- Scene backgrounds ---------- */
 function scene(kind, uid) {
   const grads = {
+    glam:   ["#4d2aa8", "#e08cf0", "#c06ad8"],
     sky:    ["#9be0ff", "#e8f9ff", "#7bd88f"],
     candy:  ["#ffc2e2", "#fff0f8", "#ffa6d0"],
     mint:   ["#b8f2d8", "#f0fff8", "#7bd88f"],
@@ -234,13 +270,17 @@ function scene(kind, uid) {
   } else if (kind === "mint") {
     for (const [x, y] of [[40,350],[250,360],[80,380],[220,390]])
       extra += `<circle cx="${x}" cy="${y}" r="9" fill="#ff8fc4"/><circle cx="${x}" cy="${y}" r="4" fill="#ffe66d"/>`;
+  } else if (kind === "glam") {
+    extra += `<polygon points="40,0 95,0 175,510 -35,510" fill="#fff" opacity=".07"/><polygon points="205,0 265,0 345,510 140,510" fill="#fff" opacity=".07"/>`;
+    for (const [x, y, r] of [[40,60,10],[250,40,8],[270,170,12],[30,200,7],[60,330,11],[255,320,9],[130,30,6],[200,120,5],[20,430,8],[280,440,10],[100,170,5],[220,250,6]])
+      extra += `<path d="${star4(x, y, r)}" fill="#fff" opacity=".85"/>`;
   } else if (kind === "sunset") {
     extra += `<circle cx="150" cy="330" r="60" fill="#ffd36e" opacity=".8"/>`;
   }
   return `<defs><linearGradient id="bg-${uid}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="${grads[0]}"/><stop offset="1" stop-color="${grads[1]}"/></linearGradient></defs>
-    <rect width="300" height="480" fill="url(#bg-${uid})"/>${extra}
-    <ellipse cx="150" cy="450" rx="170" ry="40" fill="${grads[2]}"/>`;
+    <rect width="300" height="510" fill="url(#bg-${uid})"/>${extra}
+    <ellipse cx="150" cy="482" rx="190" ry="44" fill="${grads[2]}"/>`;
 }
 
 /* ---------- Character parts ---------- */
@@ -351,6 +391,7 @@ function curve(p, first = "M") {
   for (let i = 1; i < p.length - 1; i++) d += ` Q${fp(p[i])} ${fp([(p[i][0] + p[i + 1][0]) / 2, (p[i][1] + p[i + 1][1]) / 2])}`;
   return d + ` L${fp(p[p.length - 1])}`;
 }
+const flip = pts => pts.map(([x, y]) => [300 - x, y]);
 const mirror = pts => pts.map(([x, y]) => [300 - x, y]).reverse();
 // closed shape from a left outline (top to bottom); the right side is its mirror image
 const symmetric = left => curve(left, "M") + " " + curve(mirror(left), "L") + "Z";
@@ -392,6 +433,12 @@ function bottomWear(style, c) {
       return `<path d="${d}" fill="${c}" ${OUT}/>${waist}
               <path d="M150 254 L150 322 M128 258 Q136 268 144 260 M172 258 Q164 268 156 260" fill="none" stroke="${lighter(c, .45)}" stroke-width="1.6" stroke-dasharray="3 2"/>
               <circle cx="150" cy="249" r="3" fill="#d9b45c"/>`;
+    }
+    case "tulle": {
+      const left = [...edge(246, 298, -1, 1), [106, 332], [84, 372]];
+      return `<path d="${symmetric([[112, 300], [92, 352], [70, 404]])}" fill="${c}" opacity=".5" ${OUT}/>
+              <path d="${symmetric(left)}" fill="${c}" ${OUT}/>
+              <path d="M138 262 Q130 320 112 372 M150 262 L150 376 M162 262 Q170 320 188 372" fill="none" stroke="${dk}" stroke-width="2" opacity=".28"/>${waist}`;
     }
     case "mini": {
       const left = [...edge(246, 298, -1, 1), [102, 338]];
@@ -463,7 +510,7 @@ function topWear(style, c) {
       const inner = edge(180, 290, -1, 0);
       const jl = edge(180, 296, -1, 3);
       const panelL = `${curve(jl, "M")} L147 296 L146 262 L136 214 L128 180Z`;
-      const panelR = `${curve(mirror(jl), "M")} L153 296 L154 262 L164 214 L172 180Z`;
+      const panelR = `${curve(flip(jl), "M")} L153 296 L154 262 L164 214 L172 180Z`;
       return sleeves(c, LONG[0], LONG[1], 18) +
         `<path d="${curve(inner, "M")} ${curve(mirror(inner), "L")} L162 180 Q150 202 138 180Z" fill="${lighter(c, .82)}" ${OUT}/>
          <path d="${panelL}" fill="${c}" ${OUT}/><path d="${panelR}" fill="${c}" ${OUT}/>
@@ -497,8 +544,20 @@ function topWear(style, c) {
       return sleeves(c, LONG[0], LONG[1], 19) +
         `<path d="${curve(inner, "M")} ${curve(mirror(inner), "L")} L162 180 Q150 202 138 180Z" fill="${lighter(c, .8)}" ${OUT}/>
          <path d="${curve(jl, "M")} L148 308 L147 250 L140 202 L130 180Z" fill="${c}" ${OUT}/>
-         <path d="${curve(mirror(jl), "M")} L152 308 L153 250 L160 202 L170 180Z" fill="${c}" ${OUT}/>
+         <path d="${curve(flip(jl), "M")} L152 308 L153 250 L160 202 L170 180Z" fill="${c}" ${OUT}/>
          <path d="M130 180 L140 202 L147 250 L148 308 M170 180 L160 202 L153 250 L152 308" fill="none" stroke="${dk}" stroke-width="4"/>`;
+    }
+    case "jacket": {
+      const inner = edge(180, 290, -1, 0);
+      const jl = edge(180, 258, -1, 4);
+      return sleeves(c, LONG[0], LONG[1], 19) +
+        `<path d="M99 262 Q98 270 98 276 M201 262 Q202 270 202 276" fill="none" stroke="${dk}" stroke-width="20"/>
+         <path d="${curve(inner, "M")} ${curve(mirror(inner), "L")} L164 180 Q150 206 136 180Z" fill="#1f1f2b" ${OUT}/>
+         <path d="${curve(jl, "M")} L148 258 L147 232 L138 204 L128 180Z" fill="${c}" ${OUT}/>
+         <path d="${curve(flip(jl), "M")} L152 258 L153 232 L162 204 L172 180Z" fill="${c}" ${OUT}/>
+         <path d="M124 180 L140 214 L136 196 L118 190Z M176 180 L160 214 L164 196 L182 190Z" fill="${dk}" ${OUT}/>
+         <circle cx="130" cy="236" r="2.2" fill="#e8c768"/><circle cx="170" cy="236" r="2.2" fill="#e8c768"/>
+         <circle cx="124" cy="214" r="2.2" fill="#e8c768"/><circle cx="176" cy="214" r="2.2" fill="#e8c768"/>`;
     }
     case "crop": {
       const L = edge(205, 238, -1, 0);
@@ -549,6 +608,19 @@ function dressWear(style, c) {
          <circle cx="150" cy="222" r="2" fill="${dk}"/><circle cx="150" cy="268" r="2" fill="${dk}"/><circle cx="150" cy="300" r="2" fill="${dk}"/><circle cx="150" cy="330" r="2" fill="${dk}"/>
          <path d="${band(240, 252, 1.5)}" fill="#6b3f26" ${OUT}/><rect x="143" y="241" width="14" height="10" rx="2" fill="#d9b45c" ${OUT}/>`;
     }
+    case "ruffle": {
+      const left = [...edge(180, 298, -1, 1.5), [115, 334], [119, 372]];
+      let r = "";
+      [[110, 190, -28], [102, 201, -22], [96, 212, -16]].forEach(([x, y, a], i) => {
+        const fill = i % 2 ? c : lt;
+        r += `<ellipse cx="${x}" cy="${y}" rx="15" ry="8" transform="rotate(${a} ${x} ${y})" fill="${fill}" ${OUT}/>`;
+        r += `<ellipse cx="${300 - x}" cy="${y}" rx="15" ry="8" transform="rotate(${-a} ${300 - x} ${y})" fill="${fill}" ${OUT}/>`;
+      });
+      for (const [x, y] of [[136, 184], [141, 192], [146, 199], [154, 199], [159, 192], [164, 184]])
+        r += `<circle cx="${x}" cy="${y}" r="5" fill="${lt}" ${OUT}/>`;
+      return `<path d="${curve(left, "M")} ${curve(mirror(left), "L")} L166 178 L150 204 L134 178Z" fill="${c}" ${OUT}/>
+              <path d="M126 252 Q150 264 176 252 M122 272 Q148 286 178 272 M120 294 Q148 310 180 294 M124 316 Q150 328 176 316" fill="none" stroke="${dk}" stroke-width="2.5" opacity=".35"/>${r}`;
+    }
     case "skater": {
       const left = [...edge(180, 246, -1, 1), [104, 284], [84, 336]];
       return `<path d="M115 178 Q99 186 91 210 L107 216 Q113 200 121 194Z M185 178 Q201 186 209 210 L193 216 Q187 200 179 194Z" fill="${c}" ${OUT}/>
@@ -581,6 +653,10 @@ function shoeWear(style, c) {
         <rect x="${x - 21}" y="${y + 4}" width="42" height="6" rx="3" fill="rgba(0,0,0,.2)"/>`).join("");
     case "boots":
       return [L, R].map(x => `<path d="M${x - 14} 398 L${x + 14} 398 L${x + 14} 430 Q${x + 28} 432 ${x + 24} 446 L${x - 22} 446 Q${x - 24} 430 ${x - 14} 430Z" fill="${c}" ${OUT}/>`).join("");
+    case "booties":
+      return [L, R].map(x => `<path d="M${x - 13} 406 L${x + 13} 406 L${x + 13} 428 Q${x + 22} 438 ${x + 10} 449 L${x - 10} 449 Q${x - 20} 438 ${x - 13} 428Z" fill="${c}" ${OUT}/>
+        <path d="M${x - 8} 411 L${x - 8} 426" stroke="${lighter(c, .5)}" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+        <rect x="${x - 3}" y="447" width="6" height="6" fill="${darker(c, .3)}"/>`).join("");
     case "heels":
       return [L, R].map(x => `<path d="M${x - 12} 424 L${x + 12} 424 Q${x + 17} 440 ${x} 449 Q${x - 17} 440 ${x - 12} 424Z" fill="${c}" ${OUT}/>
         <path d="M${x - 9} 428 Q${x} 434 ${x + 9} 428" fill="none" stroke="${darker(c, .25)}" stroke-width="2"/>`).join("");
@@ -692,19 +768,27 @@ function extraBack(list) {
   return `<path d="M130 195 Q40 120 50 225 Q60 275 130 255Z" fill="#c9f1ff" stroke="#8fd3ee" stroke-width="3" opacity=".9"/>
           <path d="M170 195 Q260 120 250 225 Q240 275 170 255Z" fill="#c9f1ff" stroke="#8fd3ee" stroke-width="3" opacity=".9"/>`;
 }
+function extraHead(list) {
+  let s = "";
+  if (list.includes("earrings")) s += `<circle cx="100" cy="128" r="5" fill="#ffd23f"/><circle cx="200" cy="128" r="5" fill="#ffd23f"/>`;
+  if (list.includes("sticker"))  s += `<polygon points="${starPoints(186, 138, 8, 3.5)}" fill="#ffd23f" stroke="#e0a800" stroke-width="1"/>`;
+  if (list.includes("hoops"))    s += `<circle cx="100" cy="140" r="9" fill="none" stroke="#e8c768" stroke-width="3"/><circle cx="200" cy="140" r="9" fill="none" stroke="#e8c768" stroke-width="3"/>`;
+  if (list.includes("clip"))     s += `<polygon points="${starPoints(124, 76, 9, 4)}" fill="#ff5fa2" stroke="#d63384" stroke-width="1.5"/>`;
+  return s;
+}
 function extraFront(list) {
   let s = "";
   if (list.includes("necklace")) s += `<path d="M125 182 Q150 215 175 182" fill="none" stroke="#ffd23f" stroke-width="3"/><path d="${heartPath(150, 208, .7)}" fill="#ff5fa2"/>`;
   if (list.includes("scarf"))    s += `<rect x="124" y="170" width="52" height="16" rx="8" fill="#e63946" ${OUT}/><path d="M160 180 L176 230 L158 226Z" fill="#e63946" ${OUT}/>`;
-  if (list.includes("earrings")) s += `<circle cx="100" cy="128" r="5" fill="#ffd23f"/><circle cx="200" cy="128" r="5" fill="#ffd23f"/>`;
-  if (list.includes("sticker"))  s += `<polygon points="${starPoints(186, 138, 8, 3.5)}" fill="#ffd23f" stroke="#e0a800" stroke-width="1"/>`;
-  if (list.includes("hoops"))    s += `<circle cx="100" cy="140" r="9" fill="none" stroke="#e8c768" stroke-width="3"/><circle cx="200" cy="140" r="9" fill="none" stroke="#e8c768" stroke-width="3"/>`;
   if (list.includes("choker"))   s += `<path d="M138 164 Q150 174 162 164" fill="none" stroke="#1f1f2b" stroke-width="3.5" stroke-linecap="round"/><circle cx="150" cy="172" r="2.8" fill="#e8c768"/>`;
   if (list.includes("bracelet")) s += `<ellipse cx="97" cy="283" rx="8" ry="3" fill="none" stroke="#e8c768" stroke-width="3"/><ellipse cx="203" cy="283" rx="8" ry="3" fill="none" stroke="#e8c768" stroke-width="3"/>`;
   if (list.includes("belt"))     s += `<path d="${band(241, 252, 3)}" fill="#6b3f26" ${OUT}/><rect x="142" y="240" width="16" height="13" rx="2" fill="#e8c768" ${OUT}/>`;
-  if (list.includes("clip"))     s += `<polygon points="${starPoints(124, 76, 9, 4)}" fill="#ff5fa2" stroke="#d63384" stroke-width="1.5"/>`;
   if (list.includes("handbag"))  s += `<path d="M199 300 Q201 280 212 280 Q224 280 226 300" fill="none" stroke="#7a4426" stroke-width="3"/>
                                        <rect x="192" y="298" width="42" height="32" rx="7" fill="#c9733d" ${OUT}/><rect x="208" y="306" width="10" height="7" rx="2" fill="#e8c768"/>`;
+  if (list.includes("layers"))   s += `<path d="M133 168 Q150 212 167 168" fill="none" stroke="#e8c768" stroke-width="1.8"/><path d="M130 168 Q150 232 170 168" fill="none" stroke="#c8c8d8" stroke-width="1.8"/><path d="M127 168 Q150 252 173 168" fill="none" stroke="#e8c768" stroke-width="1.8"/><circle cx="150" cy="240" r="3.5" fill="#ff5fa2"/>`;
+  if (list.includes("bangles"))  s += [0, 5, 10].map(d => `<ellipse cx="97" cy="${274 + d}" rx="8.5" ry="2.6" fill="none" stroke="#e8c768" stroke-width="2.4"/>`).join("") + `<ellipse cx="203" cy="282" rx="8.5" ry="2.6" fill="none" stroke="#e8c768" stroke-width="2.4"/>`;
+  if (list.includes("clutch"))   s += `<rect x="76" y="298" width="36" height="21" rx="3" fill="#c1121f" ${OUT}/><path d="M80 304 L108 304 M80 310 L108 310 M88 299 L88 318 M98 299 L98 318" stroke="#8a0d17" stroke-width="1"/><circle cx="94" cy="299" r="2.5" fill="#e8c768"/>`;
+  if (list.includes("crossbody")) s += `<path d="M181 182 Q150 250 120 296" fill="none" stroke="#7a4426" stroke-width="3"/><rect x="104" y="292" width="32" height="22" rx="5" fill="#5ec8e0" ${OUT}/><rect x="114" y="297" width="12" height="6" rx="2" fill="#e8c768"/>`;
   if (list.includes("wand"))     s += `<line x1="206" y1="290" x2="236" y2="222" stroke="#b07acb" stroke-width="5" stroke-linecap="round"/>
                                        <polygon points="${starPoints(240, 210, 18, 8)}" fill="#ffd23f" stroke="#e0a800" stroke-width="2"/>
                                        <circle cx="206" cy="290" r="10" fill="rgba(0,0,0,0)"/>`;
@@ -712,23 +796,42 @@ function extraFront(list) {
 }
 
 /* ---------- Render ---------- */
+const HEAD = 'transform="translate(150 172) scale(.86) translate(-150 -178)"';
+const STRETCH = 'transform="translate(150 20) scale(.94 1.1) translate(-150 -20)"';
+
 function buildSvg(s, { uid = "main", animated = false } = {}) {
   const hasDress = s.dress !== "none";
   const bobDelay = (performance.now() / 1000 % 3).toFixed(2);
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 480" role="img" aria-label="Dress-up character">
+  const clothes = hasDress ? dressWear(s.dress, s.dressColor) : bottomWear(s.bottom, s.bottomColor) + topWear(s.top, s.topColor);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 510" role="img" aria-label="Dress-up character">
+    <defs>
+      <linearGradient id="sheen-${uid}" gradientUnits="userSpaceOnUse" x1="95" y1="175" x2="215" y2="430">
+        <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".2" stop-color="#fff" stop-opacity=".42"/>
+        <stop offset=".38" stop-color="#fff" stop-opacity="0"/><stop offset=".62" stop-color="#000" stop-opacity="0"/>
+        <stop offset=".85" stop-color="#000" stop-opacity=".16"/><stop offset="1" stop-color="#000" stop-opacity=".26"/>
+      </linearGradient>
+      <filter id="white-${uid}"><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"/></filter>
+      <mask id="cm-${uid}" maskUnits="userSpaceOnUse" x="0" y="0" width="300" height="510">
+        <g filter="url(#white-${uid})"><use href="#clothes-${uid}"/></g>
+      </mask>
+    </defs>
     ${scene(s.scene, uid)}
-    <g class="${animated ? "bob" : ""}" style="animation-delay:-${bobDelay}s"><g class="char">
+    <g class="${animated ? "bob" : ""}" style="animation-delay:-${bobDelay}s"><g ${STRETCH}><g class="char">
     ${extraBack(s.extras)}
-    ${hairBack(s.hair, s.hairColor)}
+    <g ${HEAD}>${hairBack(s.hair, s.hairColor)}</g>
     ${body(s.skin)}
-    ${hasDress ? dressWear(s.dress, s.dressColor) : bottomWear(s.bottom, s.bottomColor) + topWear(s.top, s.topColor)}
+    <g id="clothes-${uid}">${clothes}</g>
+    <rect x="0" y="0" width="300" height="510" fill="url(#sheen-${uid})" mask="url(#cm-${uid})"/>
     ${shoeWear(s.shoes, s.shoeColor)}
-    ${face(s.skin, s.hairColor)}
-    ${hairFront(s.hair, s.hairColor)}
-    ${glassesWear(s.glasses, s.glassColor)}
-    ${hatWear(s.hat, s.hatColor)}
+    <g ${HEAD}>
+      ${face(s.skin, s.hairColor)}
+      ${hairFront(s.hair, s.hairColor)}
+      ${glassesWear(s.glasses, s.glassColor)}
+      ${hatWear(s.hat, s.hatColor)}
+      ${extraHead(s.extras)}
+    </g>
     ${extraFront(s.extras)}
-    </g></g>
+    </g></g></g>
   </svg>`;
 }
 
@@ -849,16 +952,18 @@ function renderSaved(box) {
 
 /* ---------- Menu ---------- */
 function renderTabs() {
-  const tabs = document.getElementById("tabs");
-  tabs.innerHTML = "";
-  for (const cat of CATS) {
+  const left = document.getElementById("iconsL"), right = document.getElementById("iconsR");
+  left.innerHTML = right.innerHTML = "";
+  CATS.filter(c => !c.special).forEach((cat, i) => {
+    const [ico, ...rest] = cat.label.split(" ");
     const b = document.createElement("button");
-    b.textContent = cat.label;
+    b.className = "icon";
+    b.innerHTML = `<span class="ico" aria-hidden="true">${ico}</span><span class="lbl">${rest.join(" ")}</span>`;
     b.setAttribute("role", "tab");
     b.setAttribute("aria-selected", cat.id === currentTab);
-    b.onclick = () => { currentTab = cat.id; renderTabs(); renderOptions(); };
-    tabs.appendChild(b);
-  }
+    b.onclick = () => { currentTab = cat.id; sfx.pick(); renderTabs(); renderOptions(); };
+    (i < 5 ? left : right).appendChild(b);
+  });
 }
 
 function renderOptions() {
@@ -944,6 +1049,7 @@ document.getElementById("reset").onclick = () => {
 };
 
 document.getElementById("twirl").onclick = twirl;
+document.getElementById("outfits").onclick = () => { currentTab = "saved"; sfx.pick(); renderTabs(); renderOptions(); };
 
 document.getElementById("mute").onclick = e => {
   muted = !muted;
@@ -958,7 +1064,7 @@ document.getElementById("save").onclick = () => {
   const img = new Image();
   img.onload = () => {
     const canvas = document.createElement("canvas");
-    canvas.width = 900; canvas.height = 1440;
+    canvas.width = 900; canvas.height = 1530;
     canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
     const a = document.createElement("a");
     a.download = "my-dress-up-star.png";

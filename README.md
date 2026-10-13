@@ -8,8 +8,8 @@ Built with plain HTML, CSS and JavaScript. No backend, no database, no API keys,
 
 ## How to play
 
-1. Pick a category from the tabs on the right (Skin, Hair, Top, Bottom, Dress, Shoes, Glasses, Hats, Extras, Scene).
-2. Choose a style, then a color.
+1. Tap a category on the pink buttons on either side of the character (Skin, Hair, Top, Bottom, Dress, Shoes, Glasses, Hats, Extras, Scene).
+2. Choose a style and a color in the panel.
 3. Watch your character change on the left.
 
 ### Buttons
